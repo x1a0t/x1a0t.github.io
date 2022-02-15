@@ -201,6 +201,9 @@ pre {
 .post .post-content {
   text-align: justify;
 }
+.post .post-content a {
+  color: #4169e1;
+}
 .post .post-content a:hover {
   border-bottom: 1px solid;
 }
