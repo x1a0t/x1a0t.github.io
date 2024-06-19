@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  
+  <title>Dubbo Telnet暴露在公网的危害 - x1a0t&#39;s Blog</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+  
+  <meta name="keywords" content=PENTEST>
+  
+  
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=1.02">
+  
+  
+    <link rel="alternate" href="/atom.xml " title="x1a0t&#39;s Blog" type="application/atom+xml">
+  
+
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 7.2.0"></head>
+  <body>
+    <div class="container">
+      <header class="header">
+  <div class="blog-title">
+    <a href="/" class="logo">x1a0t&#39;s Blog</a>
+    <div class="subtitle"></div>
+  </div>
+  <nav class="navbar">
+    <ul class="menu">
+      
+        <li class="menu-item">
+          <a href="/" class="menu-item-link">Home</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/links" class="menu-item-link">Links</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/notes" class="menu-item-link">Notes</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/about" class="menu-item-link">About</a>
+        </li>
+      
+    </ul>
+  </nav>
+</header>
+<article class="post">
+  <div class="post-title">
+    <h1 class="article-title">Dubbo Telnet暴露在公网的危害</h1>
+  </div>
+   <div class="post-meta">
+    <span class="post-time">2019-03-09</span>
+    
+      <ul class="post-tag-list" itemprop="keywords"><li class="post-tag-list-item"><a class="post-tag-list-link" href="/tags/PENTEST/" rel="tag">PENTEST</a></li></ul>
+    
+  </div>
+  <div class="post-content">
+    <h1 id="Dubbo"><a href="#Dubbo" class="headerlink" title="Dubbo"></a>Dubbo</h1><p>Dubbo是一款高性能、轻量级的开源Java RPC框架，它提供了三大核心能力：面向接口的远程方法调用，智能容错和负载均衡，以及服务自动注册和发现。(百度百科)</p>
+<p>当Dubbo提供了面向接口的远程方法调用，会开放Telnet端口供管理员调试，而如果这些个Telnet端口是开放在公网当中，那么也就方便了攻击者</p>
+<h1 id="探查接口"><a href="#探查接口" class="headerlink" title="探查接口"></a>探查接口</h1><p>dubbo推荐以zookeeper作为注册中心，于是我们在扫C段时发现开放2181，就值得对该IP进行全端口扫描</p>
+<p>可直接通过nmap -sV 来识别dubbo telnet端口，或者在某个Web端口会存在者像如下这类的服务预览页面</p>
+<p><img src="/2019/03/09/Hack-Dubbo-With-Telnet/1.png"></p>
+<p>其中在应用Applications栏中，有分别给不同角色提供的接口(providers、consumers)</p>
+<p>查看其中一个应用的接口</p>
+<p><img src="/2019/03/09/Hack-Dubbo-With-Telnet/2.png"></p>
+<p>可以看到有些接口是开放在公网中的<del>(192开头的IP应该还在C段上)，而172开头的IP明显是处于内网中的</del>，为内网IP的可能有对应的公网可以找到</p>
+<p>通过这里我们获取到了公网IP，以及对应的端口情况，使用Telnet进行连接</p>
+<p><img src="/2019/03/09/Hack-Dubbo-With-Telnet/3.png"></p>
+<p>接着就是靠dubbo telnet提供的命令来进行敏感操作，列出几个用到的命令</p>
+<h2 id="ls"><a href="#ls" class="headerlink" title="ls"></a>ls</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ls [-l] [service]</span><br></pre></td></tr></table></figure>
+
+<p>ls查看服务名或者服务中方法的详细信息</p>
+<p><img src="/2019/03/09/Hack-Dubbo-With-Telnet/4.png"></p>
+<p>可以看到这里<code>getBannerListByStatus()</code>中的参数我们可以直接提供，尝试利用</p>
+<h1 id="invoke"><a href="#invoke" class="headerlink" title="invoke"></a>invoke</h1><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">invoke [service.]method(args)</span><br></pre></td></tr></table></figure>
+
+<p>调用服务中的方法，注意的参数类型问题</p>
+<p><img src="/2019/03/09/Hack-Dubbo-With-Telnet/5.png"></p>
+<h1 id="Reference"><a href="#Reference" class="headerlink" title="Reference"></a>Reference</h1><p><a href="http://www.cnblogs.com/xbq8080/p/6817297.html">http://www.cnblogs.com/xbq8080/p/6817297.html</a></p>
+
+  </div>
+  <div class="post-footer">
+    <a href="#top" class="top">Post.Top</a>
+  </div>
+</article>
+<footer>
+  &copy; 2024
+  <span class="author">
+    x1a0t
+  </span>
+</footer>
+    </div>
+  </body>
+</html>

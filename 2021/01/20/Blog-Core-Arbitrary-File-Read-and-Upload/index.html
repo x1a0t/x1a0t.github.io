@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  
+  <title>Blog.Core任意文件读取和上传 - x1a0t&#39;s Blog</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+  
+  <meta name="keywords" content=C#>
+  
+  
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=1.02">
+  
+  
+    <link rel="alternate" href="/atom.xml " title="x1a0t&#39;s Blog" type="application/atom+xml">
+  
+
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 7.2.0"></head>
+  <body>
+    <div class="container">
+      <header class="header">
+  <div class="blog-title">
+    <a href="/" class="logo">x1a0t&#39;s Blog</a>
+    <div class="subtitle"></div>
+  </div>
+  <nav class="navbar">
+    <ul class="menu">
+      
+        <li class="menu-item">
+          <a href="/" class="menu-item-link">Home</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/links" class="menu-item-link">Links</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/notes" class="menu-item-link">Notes</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/about" class="menu-item-link">About</a>
+        </li>
+      
+    </ul>
+  </nav>
+</header>
+<article class="post">
+  <div class="post-title">
+    <h1 class="article-title">Blog.Core任意文件读取和上传</h1>
+  </div>
+   <div class="post-meta">
+    <span class="post-time">2021-01-20</span>
+    
+      <ul class="post-tag-list" itemprop="keywords"><li class="post-tag-list-item"><a class="post-tag-list-link" href="/tags/C/" rel="tag">C#</a></li></ul>
+    
+  </div>
+  <div class="post-content">
+    <p>选取了一套代码比较简洁的系统进行审计</p>
+<h2 id="任意文件读取"><a href="#任意文件读取" class="headerlink" title="任意文件读取"></a>任意文件读取</h2><p>位于<code>Blog.Core\Blog.Core.Api\Controllers\ImgController.cs</code>:</p>
+<p><img src="/2021/01/20/Blog-Core-Arbitrary-File-Read-and-Upload/vul1.png"><br>未对filename做任何处理，直接进行读取操作，可跨目录读取文件，如：<br><a href="http://127.0.0.1:8081/images/Down/Bmd?filename=../appsettings.json">http://127.0.0.1:8081/images/Down/Bmd?filename=../appsettings.json</a><br><a href="http://127.0.0.1:8081/images/Down/Bmd?filename=../WMBlog.db">http://127.0.0.1:8081/images/Down/Bmd?filename=../WMBlog.db</a></p>
+<p><img src="/2021/01/20/Blog-Core-Arbitrary-File-Read-and-Upload/exp1.png"></p>
+<p>这里默认情况下是无需权限的，通过读取敏感文件，特别是默认情况下使用的sqlite文件，可以拿到账号密码</p>
+<h2 id="任意文件上传"><a href="#任意文件上传" class="headerlink" title="任意文件上传"></a>任意文件上传</h2><p>仍然位于<code>Blog.Core\Blog.Core.Api\Controllers\ImgController.cs</code>:</p>
+<p><img src="/2021/01/20/Blog-Core-Arbitrary-File-Read-and-Upload/vul2.png"></p>
+<p>这里只在76行处对请求包的ContentType进行了白名单校检，而82行拼接文件写入的目标路径部分，使用的是<code>file.FileName</code>，用户完全可控，导致可跨目录上传任意名称的文件</p>
+<p><img src="/2021/01/20/Blog-Core-Arbitrary-File-Read-and-Upload/exp2.png"></p>
+<p>这里虽然是个任意文件上传，但是并没有找到特别好的办法进行进一步获取网站权限的利用方法</p>
+<h2 id="未能完美RCE"><a href="#未能完美RCE" class="headerlink" title="未能完美RCE"></a>未能完美RCE</h2><p>首先由于这套系统采用.NET Core开发，上传aspx脚本或者web.config均没法getshell</p>
+<p>于是我翻了下代码发现改系统提供了任务调度的功能，看起来可以通过反射执行dll中的代码，在<br><code>Blog.Core\Blog.Core.Tasks\QuartzNet\SchedulerCenterServer.cs</code></p>
+<p><img src="/2021/01/20/Blog-Core-Arbitrary-File-Read-and-Upload/task.png"></p>
+<p>但是经过简单查阅资料以及测试，发现这里并不能加载我们上传的dll，只能加载<code>项目名.deps.json</code>所申明的内存中的dll，当然覆盖该文件也是不可行的，因为项目启动时已加载过</p>
+<p>又翻查了下目标调用Json.net和Xstream的地方，均未有所收获</p>
+<h2 id="结束"><a href="#结束" class="headerlink" title="结束"></a>结束</h2><p>虽然无法完美的RCE，但是配合某些情况还是有那么点机会的</p>
+<p>至于修复基本只需要解决跨目录的问题基本就没啥大问题了，使用<code>Path.GetFilename</code>处理文件名即可</p>
+
+  </div>
+  <div class="post-footer">
+    <a href="#top" class="top">Post.Top</a>
+  </div>
+</article>
+<footer>
+  &copy; 2024
+  <span class="author">
+    x1a0t
+  </span>
+</footer>
+    </div>
+  </body>
+</html>

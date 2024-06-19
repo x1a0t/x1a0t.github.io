@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  
+  <title>学习JAVA内存SHELL-PART2 - x1a0t&#39;s Blog</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+  
+  <meta name="keywords" content=JAVA>
+  
+  
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=1.02">
+  
+  
+    <link rel="alternate" href="/atom.xml " title="x1a0t&#39;s Blog" type="application/atom+xml">
+  
+
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 7.2.0"></head>
+  <body>
+    <div class="container">
+      <header class="header">
+  <div class="blog-title">
+    <a href="/" class="logo">x1a0t&#39;s Blog</a>
+    <div class="subtitle"></div>
+  </div>
+  <nav class="navbar">
+    <ul class="menu">
+      
+        <li class="menu-item">
+          <a href="/" class="menu-item-link">Home</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/links" class="menu-item-link">Links</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/notes" class="menu-item-link">Notes</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/about" class="menu-item-link">About</a>
+        </li>
+      
+    </ul>
+  </nav>
+</header>
+<article class="post">
+  <div class="post-title">
+    <h1 class="article-title">学习JAVA内存SHELL-PART2</h1>
+  </div>
+   <div class="post-meta">
+    <span class="post-time">2020-09-26</span>
+    
+      <ul class="post-tag-list" itemprop="keywords"><li class="post-tag-list-item"><a class="post-tag-list-link" href="/tags/JAVA/" rel="tag">JAVA</a></li></ul>
+    
+  </div>
+  <div class="post-content">
+    <h1 id="无日志访问shell文件"><a href="#无日志访问shell文件" class="headerlink" title="无日志访问shell文件"></a>无日志访问shell文件</h1><p>学习JAVA内存shell时，考古发现了n1nty大佬早在17年的一系列文章，其中讲到了tomcat在日志功能在默认配置下，避开各Container组件中的日志记录器中的<code>log(</code>方法，实现访问shell文件无日志产生的操作</p>
+<p>继承Container的StandardEngine、StandardHost、StandardContext、StandardWrapper均实现了logAccess方法<br><img src="/2020/09/26/Study-Java-Memory-Shell-Two/1.png"></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">logAccess</span><span class="params">(Request request, Response response, <span class="type">long</span> time, <span class="type">boolean</span> useDefault)</span> &#123;</span><br><span class="line">    <span class="type">boolean</span> <span class="variable">logged</span> <span class="operator">=</span> <span class="literal">false</span>;</span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">this</span>.getAccessLog() != <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="built_in">this</span>.getAccessLog().log(request, response, time);</span><br><span class="line">        logged = <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">this</span>.getParent() != <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="built_in">this</span>.getParent().logAccess(request, response, time, useDefault &amp;&amp; !logged);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>通过上述代码可知，日志记录操作是会以Wrapper-&gt;Context-&gt;Host-&gt;Engine层层往上的方式记录，然后存放到&#x2F;logs目录下</p>
+<p>看一下<code>log(</code>的代码org.apache.catalina.valves.AbstractAccessLogValve</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">log</span><span class="params">(Request request, Response response, <span class="type">long</span> time)</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">this</span>.getState().isAvailable() &amp;&amp; <span class="built_in">this</span>.getEnabled() &amp;&amp; <span class="built_in">this</span>.logElements != <span class="literal">null</span> &amp;&amp; (<span class="built_in">this</span>.condition == <span class="literal">null</span> || <span class="literal">null</span> == request.getRequest().getAttribute(<span class="built_in">this</span>.condition)) &amp;&amp; (<span class="built_in">this</span>.conditionIf == <span class="literal">null</span> || <span class="literal">null</span> != request.getRequest().getAttribute(<span class="built_in">this</span>.conditionIf))) &#123;</span><br><span class="line">        <span class="type">long</span> <span class="variable">start</span> <span class="operator">=</span> request.getCoyoteRequest().getStartTime();</span><br><span class="line">        <span class="type">Date</span> <span class="variable">date</span> <span class="operator">=</span> getDate(start + time);</span><br><span class="line">        <span class="type">CharArrayWriter</span> <span class="variable">result</span> <span class="operator">=</span> (CharArrayWriter)<span class="built_in">this</span>.charArrayWriters.pop();</span><br><span class="line">        <span class="keyword">if</span> (result == <span class="literal">null</span>) &#123;</span><br><span class="line">            result = <span class="keyword">new</span> <span class="title class_">CharArrayWriter</span>(<span class="number">128</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">for</span>(<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; <span class="built_in">this</span>.logElements.length; ++i) &#123;</span><br><span class="line">            <span class="built_in">this</span>.logElements[i].addElement(result, date, request, response, time);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="built_in">this</span>.log(result);</span><br><span class="line">        <span class="keyword">if</span> (result.size() &lt;= <span class="built_in">this</span>.maxLogMessageBufferSize) &#123;</span><br><span class="line">            result.reset();</span><br><span class="line">            <span class="built_in">this</span>.charArrayWriters.push(result);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果设置其<code>condition</code>或者<code>conditionIf</code>为一个特定的值，然后在之后访问shell的过程中，传入一个以该值为参数名的参数，上述代码的if判断为false，<strong>即可使该Container层不记录日志</strong>，利用时层层遍历修改即可</p>
+<h1 id="Java-Instrumentation"><a href="#Java-Instrumentation" class="headerlink" title="Java Instrumentation"></a>Java Instrumentation</h1><p>java 内存shell大多都是以tomcat讲起的，而在实际项目上又遇到了很多不同的web容器(weblogic、spring、websphere)，注入内存shell时就需要搭环境、找代码、改代码，就很烦</p>
+<p>还好此次考古还挖掘到了<a href="https://www.cnblogs.com/rebeyond/p/9686213.html">rebeyond大佬的一篇文章</a>，其中利用到了Java Instrumentation，大概就是一种可以在jvm中修改任意类的应用程序</p>
+<p>任意类！！！那我们随便找一个Servlet或者Filter啥的跟容器无关的类(当然也需要能够获取到我们的传参)，注入我们的恶意代码不就行了，要做的可能就只是找个类名以及写写shell代码</p>
+<p>作者贴心的给出了完整的<a href="https://github.com/rebeyond/memShell">利用代码</a>可以在tomcat的框架类中注入内存shell(带参访问任意url皆可)，也可根据自己的需求来改，贴下自己改的</p>
+<p><a href="https://github.com/x1a0t/InjectShell">https://github.com/x1a0t/InjectShell</a><br><img src="/2020/09/26/Study-Java-Memory-Shell-Two/poc.gif"></p>
+<h1 id="Reference"><a href="#Reference" class="headerlink" title="Reference"></a>Reference</h1><p><a href="https://mp.weixin.qq.com/s/x4pxmeqC1DvRi9AdxZ-0Lw">https://mp.weixin.qq.com/s/x4pxmeqC1DvRi9AdxZ-0Lw</a><br><a href="https://mp.weixin.qq.com/s/1ZiLD396088TxiW_dUOFsQ">https://mp.weixin.qq.com/s/1ZiLD396088TxiW_dUOFsQ</a><br><a href="https://mp.weixin.qq.com/s/7b3Fyu_K6ZRgKlp6RkdYoA">https://mp.weixin.qq.com/s/7b3Fyu_K6ZRgKlp6RkdYoA</a><br><a href="https://www.cnblogs.com/rebeyond/p/9686213.html">https://www.cnblogs.com/rebeyond/p/9686213.html</a></p>
+
+  </div>
+  <div class="post-footer">
+    <a href="#top" class="top">Post.Top</a>
+  </div>
+</article>
+<footer>
+  &copy; 2024
+  <span class="author">
+    x1a0t
+  </span>
+</footer>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  
+  <title>跨域安全问题学习 - x1a0t&#39;s Blog</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+  
+  <meta name="keywords" content=SOP>
+  
+  
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=1.02">
+  
+  
+    <link rel="alternate" href="/atom.xml " title="x1a0t&#39;s Blog" type="application/atom+xml">
+  
+
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 7.2.0"></head>
+  <body>
+    <div class="container">
+      <header class="header">
+  <div class="blog-title">
+    <a href="/" class="logo">x1a0t&#39;s Blog</a>
+    <div class="subtitle"></div>
+  </div>
+  <nav class="navbar">
+    <ul class="menu">
+      
+        <li class="menu-item">
+          <a href="/" class="menu-item-link">Home</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/links" class="menu-item-link">Links</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/notes" class="menu-item-link">Notes</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/about" class="menu-item-link">About</a>
+        </li>
+      
+    </ul>
+  </nav>
+</header>
+<article class="post">
+  <div class="post-title">
+    <h1 class="article-title">跨域安全问题学习</h1>
+  </div>
+   <div class="post-meta">
+    <span class="post-time">2020-03-06</span>
+    
+      <ul class="post-tag-list" itemprop="keywords"><li class="post-tag-list-item"><a class="post-tag-list-link" href="/tags/SOP/" rel="tag">SOP</a></li></ul>
+    
+  </div>
+  <div class="post-content">
+    <h2 id="postMessage"><a href="#postMessage" class="headerlink" title="postMessage"></a>postMessage</h2><p><code>postMessage</code>常用于当前页面与iframe内页面，传递跨域信息</p>
+<p>如果对发送端或接受端未做校检，就会存在这样那样的问题</p>
+<h3 id="发送端未指定target"><a href="#发送端未指定target" class="headerlink" title="发送端未指定target"></a>发送端未指定target</h3><p>下面为页面aaa接受来自窗口bbb的信息</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">&lt;!-- http://www.aaa.com:1234/receive.html --&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">p</span> <span class="attr">id</span>=<span class="string">&quot;text&quot;</span>&gt;</span><span class="tag">&lt;/<span class="name">p</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">iframe</span> <span class="attr">id</span>=<span class="string">&quot;target&quot;</span> <span class="attr">src</span>=<span class="string">&quot;http://www.bbb.com:1234/send.html&quot;</span>&gt;</span><span class="tag">&lt;/<span class="name">iframe</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">script</span>&gt;</span><span class="language-javascript"></span></span><br><span class="line"><span class="language-javascript">    <span class="variable language_">window</span>.<span class="title function_">addEventListener</span>(<span class="string">&#x27;message&#x27;</span>, receiveMessage, <span class="literal">false</span>);</span></span><br><span class="line"><span class="language-javascript">    <span class="keyword">function</span> <span class="title function_">receiveMessage</span>(<span class="params">event</span>) &#123;</span></span><br><span class="line"><span class="language-javascript">        <span class="keyword">if</span>(event.<span class="property">origin</span> != <span class="string">&#x27;http://www.bbb.com:1234&#x27;</span>) &#123;</span></span><br><span class="line"><span class="language-javascript">            <span class="keyword">return</span>;</span></span><br><span class="line"><span class="language-javascript">        &#125;</span></span><br><span class="line"><span class="language-javascript">        <span class="variable language_">document</span>.<span class="title function_">getElementById</span>(<span class="string">&quot;text&quot;</span>).<span class="property">innerHTML</span> = event.<span class="property">data</span>;</span></span><br><span class="line"><span class="language-javascript">    &#125;</span></span><br><span class="line"><span class="language-javascript"></span><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">&lt;!-- http://www.bbb.com:1234/send.html --&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">script</span>&gt;</span><span class="language-javascript"></span></span><br><span class="line"><span class="language-javascript">    <span class="comment">//向父窗口发送用户的SercretKey，指定域为*</span></span></span><br><span class="line"><span class="language-javascript">    <span class="variable language_">window</span>.<span class="property">parent</span>.<span class="title function_">postMessage</span>(<span class="string">&quot;SercretKey&quot;</span>, <span class="string">&quot;*&quot;</span>);</span></span><br><span class="line"><span class="language-javascript"></span><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>正常状态如下:<br><img src="/2020/03/06/Cross-origin-Security/1.png"></p>
+<p>但是上面发送端代码中指定target为<code>*</code>，<strong>意味着任意域都可以接收这一信息</strong></p>
+<p>在恶意网站ccc上布置接收代码，用户访问后，就可以拿到用户的SercretKey</p>
+<h3 id="接收端未校检origin"><a href="#接收端未校检origin" class="headerlink" title="接收端未校检origin"></a>接收端未校检origin</h3><p>下面为aaa向窗口bbb传递信息SecretKey，bbb接收到后将内容显示到页面里</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">&lt;!-- http://www.aaa.com:1234/send.html --&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">iframe</span> <span class="attr">id</span>=<span class="string">&quot;target&quot;</span> <span class="attr">src</span>=<span class="string">&quot;http://www.bbb.com:1234/receive.html&quot;</span>&gt;</span><span class="tag">&lt;/<span class="name">iframe</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">script</span>&gt;</span><span class="language-javascript"></span></span><br><span class="line"><span class="language-javascript">    <span class="keyword">var</span> target = <span class="variable language_">document</span>.<span class="title function_">getElementById</span>(<span class="string">&quot;target&quot;</span>);</span></span><br><span class="line"><span class="language-javascript">    target.<span class="property">contentWindow</span>.<span class="title function_">postMessage</span>(<span class="string">&quot;SecretKey&quot;</span>, <span class="string">&quot;http://www.bbb.com:1234&quot;</span>);</span></span><br><span class="line"><span class="language-javascript"></span><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">&lt;!-- http://www.bbb.com:1234/receive.html --&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">p</span> <span class="attr">id</span>=<span class="string">&quot;text&quot;</span>&gt;</span><span class="tag">&lt;/<span class="name">p</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">script</span>&gt;</span><span class="language-javascript"></span></span><br><span class="line"><span class="language-javascript">    <span class="comment">// 监听postMessage，并使用receiveMessage函数处理</span></span></span><br><span class="line"><span class="language-javascript">    <span class="variable language_">window</span>.<span class="title function_">addEventListener</span>(<span class="string">&#x27;message&#x27;</span>, receiveMessage, <span class="literal">false</span>);</span></span><br><span class="line"><span class="language-javascript">    <span class="keyword">function</span> <span class="title function_">receiveMessage</span>(<span class="params">event</span>) &#123;</span></span><br><span class="line"><span class="language-javascript">        <span class="variable language_">document</span>.<span class="title function_">getElementById</span>(<span class="string">&quot;text&quot;</span>).<span class="property">innerHTML</span> = event.<span class="property">data</span>;</span></span><br><span class="line"><span class="language-javascript">    &#125;</span></span><br><span class="line"><span class="language-javascript"></span><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>正常状态如下:<br><img src="/2020/03/06/Cross-origin-Security/2.png"></p>
+<p>但是在bbb中的接收代码中，<strong>没有对发送信息的来源进行校检</strong></p>
+<p>我们可以搭建一个恶意网站，伪造信息发送过去</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">&lt;!-- http://www.evil.com:8888/evil.html --&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">iframe</span> <span class="attr">id</span>=<span class="string">&quot;target&quot;</span> <span class="attr">src</span>=<span class="string">&quot;http://www.bbb.com:1234/receive.html&quot;</span>&gt;</span><span class="tag">&lt;/<span class="name">iframe</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">script</span>&gt;</span><span class="language-javascript"></span></span><br><span class="line"><span class="language-javascript">    <span class="keyword">var</span> target = <span class="variable language_">document</span>.<span class="title function_">getElementById</span>(<span class="string">&quot;target&quot;</span>);</span></span><br><span class="line"><span class="language-javascript">    target.<span class="property">contentWindow</span>.<span class="title function_">postMessage</span>(<span class="string">&quot;&lt;svg/onload=alert(xss)&gt;&quot;</span>, <span class="string">&quot;http://www.bbb.com:1234&quot;</span>);</span></span><br><span class="line"><span class="language-javascript"></span><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>上面的代码其实就是正常往目标传递信息，但是发送内容变成了XSS代码，用户访问我们的恶意界面后<br><img src="/2020/03/06/Cross-origin-Security/3.png"></p>
+<h3 id="防御方案"><a href="#防御方案" class="headerlink" title="防御方案"></a>防御方案</h3><p>发送端指定target</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">script</span>&gt;</span><span class="language-javascript"></span></span><br><span class="line"><span class="language-javascript">    <span class="variable language_">window</span>.<span class="property">parent</span>.<span class="title function_">postMessage</span>(<span class="string">&quot;SercretKey&quot;</span>, <span class="string">&quot;http://www.bbb.com:1234&quot;</span>);</span></span><br><span class="line"><span class="language-javascript"></span><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>接收端对origin进行校检</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">p</span> <span class="attr">id</span>=<span class="string">&quot;text&quot;</span>&gt;</span><span class="tag">&lt;/<span class="name">p</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">script</span>&gt;</span><span class="language-javascript"></span></span><br><span class="line"><span class="language-javascript">    <span class="variable language_">window</span>.<span class="title function_">addEventListener</span>(<span class="string">&#x27;message&#x27;</span>, receiveMessage, <span class="literal">false</span>);</span></span><br><span class="line"><span class="language-javascript">    <span class="keyword">function</span> <span class="title function_">receiveMessage</span>(<span class="params">event</span>) &#123;</span></span><br><span class="line"><span class="language-javascript">        <span class="keyword">if</span>(<span class="string">&#x27;http://www.aaa.com:1234&#x27;</span> != event.<span class="property">origin</span>) &#123;</span></span><br><span class="line"><span class="language-javascript">            <span class="keyword">return</span>;</span></span><br><span class="line"><span class="language-javascript">        &#125;</span></span><br><span class="line"><span class="language-javascript">        <span class="variable language_">document</span>.<span class="title function_">getElementById</span>(<span class="string">&quot;text&quot;</span>).<span class="property">innerHTML</span> = event.<span class="property">data</span>;</span></span><br><span class="line"><span class="language-javascript">    &#125;</span></span><br><span class="line"><span class="language-javascript"></span><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<h2 id="JSONP劫持"><a href="#JSONP劫持" class="headerlink" title="JSONP劫持"></a>JSONP劫持</h2><p>jsonp不像postMessage那样需要用iframe来进行跨域数据传输,而是活用script标签进行跨域数据请求</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># http://www.bbb.com:1234/test.php</span></span><br><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="comment">//没有声明返回包Content-type，默认为html，会存在XSS的问题</span></span><br><span class="line"><span class="title function_ invoke__">header</span>(<span class="string">&quot;Content-type: text/json&quot;</span>);</span><br><span class="line"><span class="variable">$callback</span> = <span class="variable">$_GET</span>[<span class="string">&#x27;callback&#x27;</span>];</span><br><span class="line"><span class="keyword">echo</span> <span class="variable">$callback</span>.<span class="string">&#x27;(&#123;&quot;id&quot;:1, &quot;name&quot;:&quot;x1a0t&quot;&#125;)&#x27;</span>;</span><br></pre></td></tr></table></figure>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">&lt;!-- http://www.aaa.com:1234/index.html --&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">script</span>&gt;</span><span class="language-javascript"></span></span><br><span class="line"><span class="language-javascript">    <span class="keyword">function</span> <span class="title function_">jsonp</span>(<span class="params">message</span>) &#123;</span></span><br><span class="line"><span class="language-javascript">        <span class="comment">// 对取到的数据进行操作</span></span></span><br><span class="line"><span class="language-javascript">        <span class="title function_">alert</span>(message);</span></span><br><span class="line"><span class="language-javascript">    &#125;</span></span><br><span class="line"><span class="language-javascript"></span><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">script</span> <span class="attr">src</span>=<span class="string">&quot;http://www.bbb.com:1234/test.php?callback=jsonp&quot;</span>&gt;</span><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>index.html中,第一个script标签先声明了一个函数<code>jsonp(message)</code>，后面的script标签跨域获取数据作为js代码执行，等于执行了函数<code>jsonp(&#123;&quot;id&quot;:1, &quot;name&quot;:&quot;x1a0t&quot;&#125;)</code>，于是我们将另一个站的数据成功引进入到了当前站的网页中</p>
+<p>但是可以看到test.php代码中并没有对请求者进行校检，攻击人员可以构造恶意界面让用户访问，即可窃取用户敏感信息</p>
+<h3 id="防御方案-1"><a href="#防御方案-1" class="headerlink" title="防御方案"></a>防御方案</h3><p>jsonp劫持属于CSRF范畴，可添加token校检代码</p>
+<p>以及test.php中的代码需要做好XSS防御，即限制返回包Content-type不要为html</p>
+<h2 id="CORS"><a href="#CORS" class="headerlink" title="CORS"></a>CORS</h2><p>jsonp是通过script标签GET请求获取的信息，如果需要用到POST等方法请求数据，就需要用CORS(跨域资源请求)</p>
+<p>我们的请求包中如果有Origin头，就会被判定为CORS请求，服务端会在返回包中以Access为前缀的头就会起作用，关键的有两个</p>
+<ul>
+<li>Access-Control-Allow-Origin，必须，允许的Origin</li>
+<li>Access-Control-Allow-Credentials，可选，允许发送cookies等凭证</li>
+</ul>
+<p>举例，某线上业务中，前端页面aaa通过某个后端api(bbb)，根据用户cookie等凭证取出用户信息，返回到当前页面中</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">&lt;!-- http://www.aaa.com:1234/index.html --&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">script</span>&gt;</span><span class="language-javascript"></span></span><br><span class="line"><span class="language-javascript">    <span class="keyword">var</span> xhr = <span class="keyword">new</span> <span class="title class_">XMLHttpRequest</span>();</span></span><br><span class="line"><span class="language-javascript">    xhr.<span class="property">onreadystatechange</span> = <span class="keyword">function</span>(<span class="params"></span>) &#123;</span></span><br><span class="line"><span class="language-javascript">        <span class="keyword">if</span>(xhr.<span class="property">readyState</span> == <span class="number">4</span>) &#123;</span></span><br><span class="line"><span class="language-javascript">            <span class="comment">// 对取到的数据进行操作</span></span></span><br><span class="line"><span class="language-javascript">            <span class="title function_">alert</span>(xhr.<span class="property">responseText</span>);</span></span><br><span class="line"><span class="language-javascript">        &#125;</span></span><br><span class="line"><span class="language-javascript">    &#125;</span></span><br><span class="line"><span class="language-javascript">    <span class="comment">//允许发送浏览器发送请求目标的cookie等凭证</span></span></span><br><span class="line"><span class="language-javascript">    xhr.<span class="property">withCredentials</span> = <span class="literal">true</span>;</span></span><br><span class="line"><span class="language-javascript">    xhr.<span class="title function_">open</span>(<span class="string">&quot;POST&quot;</span>, <span class="string">&quot;http://www.bbb.com:1234/test.php&quot;</span>);</span></span><br><span class="line"><span class="language-javascript">    xhr.<span class="title function_">send</span>();</span></span><br><span class="line"><span class="language-javascript"></span><span class="tag">&lt;/<span class="name">script</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="comment"># http://www.bbb.com:1234/test.php</span></span><br><span class="line"><span class="comment"># 重要配置</span></span><br><span class="line"><span class="title function_ invoke__">header</span>(<span class="string">&quot;Access-Control-Allow-Origin: http://www.aaa.com:1234&quot;</span>);</span><br><span class="line"><span class="title function_ invoke__">header</span>(<span class="string">&quot;Access-Control-Allow-Credentials: true&quot;</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment"># 模仿认证过程，取出敏感信息</span></span><br><span class="line"><span class="keyword">if</span>(<span class="variable">$_COOKIE</span>[<span class="string">&#x27;user&#x27;</span>]) &#123;</span><br><span class="line">    <span class="keyword">echo</span> <span class="variable">$_COOKIE</span>[<span class="string">&#x27;user&#x27;</span>].<span class="string">&quot;&#x27;s SecretKey&quot;</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>用户有bbb需要的凭证，然后访问aaa页面，aaa发起CORS请求，bbb验证凭证后取出信息返回，浏览器判断返回包是否允许当前域，是否允许凭证，都允许则取出数据，正常情况如下<br><img src="/2020/03/06/Cross-origin-Security/4.png"></p>
+<p>如果CORS出现错误配置<code>Access-Control-Allow-Origin: *</code>，即允许所有的Origin，就会造成CORS攻击</p>
+<p>攻击者可以构建恶意网页让用户访问，窃取用户敏感信息</p>
+<h3 id="防御方案-2"><a href="#防御方案-2" class="headerlink" title="防御方案"></a>防御方案</h3><p>通过<code>Access-Control-Allow-Origin</code>指定允许特定的origin</p>
+<h2 id="CSWH"><a href="#CSWH" class="headerlink" title="CSWH"></a>CSWH</h2><p>WebSocket拥有支持双向通信，实时性较强，还支持二进制通信等优点</p>
+<p>如果WebSocket服务器没有限制Origin，任何站点均可向服务器发起连接，就存在CSWH(跨站Websocket劫持)</p>
+<p>如果服务器没有限制<code>Access-Control-Allow-Origin</code>，那么任何域均可能取得服务器返回的信息，类似于CORS</p>
+<h2 id="Reference"><a href="#Reference" class="headerlink" title="Reference"></a>Reference</h2><p><a href="https://www.freebuf.com/vuls/194714.html">https://www.freebuf.com/vuls/194714.html</a><br><a href="http://sh1yan.top/2018/08/12/jsonp-study">http://sh1yan.top/2018/08/12/jsonp-study</a><br><a href="https://www.jianshu.com/p/3a9ed30233f6">https://www.jianshu.com/p/3a9ed30233f6</a><br><a href="https://zhuanlan.zhihu.com/p/61044032">https://zhuanlan.zhihu.com/p/61044032</a></p>
+
+  </div>
+  <div class="post-footer">
+    <a href="#top" class="top">Post.Top</a>
+  </div>
+</article>
+<footer>
+  &copy; 2024
+  <span class="author">
+    x1a0t
+  </span>
+</footer>
+    </div>
+  </body>
+</html>

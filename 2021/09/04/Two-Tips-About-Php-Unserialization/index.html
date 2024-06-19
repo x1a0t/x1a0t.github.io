@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  
+  <title>两个寻找php反序列化链的tips - x1a0t&#39;s Blog</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+  
+  <meta name="keywords" content=PHP>
+  
+  
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=1.02">
+  
+  
+    <link rel="alternate" href="/atom.xml " title="x1a0t&#39;s Blog" type="application/atom+xml">
+  
+
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 7.2.0"></head>
+  <body>
+    <div class="container">
+      <header class="header">
+  <div class="blog-title">
+    <a href="/" class="logo">x1a0t&#39;s Blog</a>
+    <div class="subtitle"></div>
+  </div>
+  <nav class="navbar">
+    <ul class="menu">
+      
+        <li class="menu-item">
+          <a href="/" class="menu-item-link">Home</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/links" class="menu-item-link">Links</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/notes" class="menu-item-link">Notes</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/about" class="menu-item-link">About</a>
+        </li>
+      
+    </ul>
+  </nav>
+</header>
+<article class="post">
+  <div class="post-title">
+    <h1 class="article-title">两个寻找php反序列化链的tips</h1>
+  </div>
+   <div class="post-meta">
+    <span class="post-time">2021-09-04</span>
+    
+      <ul class="post-tag-list" itemprop="keywords"><li class="post-tag-list-item"><a class="post-tag-list-link" href="/tags/PHP/" rel="tag">PHP</a></li></ul>
+    
+  </div>
+  <div class="post-content">
+    <h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>分析复现moodle的shibboleth插件未授权反序列化rce漏洞时，学习到两个php反序列化技巧</p>
+<h2 id="迭代器"><a href="#迭代器" class="headerlink" title="迭代器"></a>迭代器</h2><p>最初想着自己寻找反序列化链，结果没成，查找到moodle有过一个反序列化漏洞CVE-2018-14630，其中用到了迭代器的知识</p>
+<p>在php代码中，可以使用foreach遍历某个数组获取<code>key</code>和<code>value</code>，同样也可以用来遍历一个对象的所有可见属性</p>
+<p>如果被遍历的对象是一个迭代器时(实现Iterator接口)，则会依次执行迭代器中的几个方法：<code>rewind</code>，<code>valid</code>，<code>current</code>，<code>key</code>，<code>next</code>，可以用来拓展反序列化利用链，具体参看<a href="https://www.php.net/manual/zh/class.iterator.php">php文档</a></p>
+<p>moodle代码中<code>\core\dml\recordset_walk</code>的<code>current()</code>便存在这样的危险操作:<br><img src="/2021/09/04/Two-Tips-About-Php-Unserialization/1.png"></p>
+<h2 id="间接加载目标类"><a href="#间接加载目标类" class="headerlink" title="间接加载目标类"></a>间接加载目标类</h2><p>既然CVE-2018-14630已经给出了反序列化链，为什么不直接使用呢？实际上可能是因为该CVE是授权后的漏洞，而该案例在未授权情况下其中有两个类，没有在反序列化触发点前加载，导致无法利用</p>
+<p>这时候，可通过反序列化某个特定类，该特定类已经加载过目标类或包含过目标类所在文件，达到间接加载目标类的效果</p>
+<p>大概类似这样：php自动注册机制无法加载<code>Flag</code>,但可加载<code>Bridge</code><br><img src="/2021/09/04/Two-Tips-About-Php-Unserialization/2.png"></p>
+
+  </div>
+  <div class="post-footer">
+    <a href="#top" class="top">Post.Top</a>
+  </div>
+</article>
+<footer>
+  &copy; 2024
+  <span class="author">
+    x1a0t
+  </span>
+</footer>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  
+  <title>WP插件wp-ulike授权SQL注入 - x1a0t&#39;s Blog</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+  
+  <meta name="keywords" content=PHP,SQLI>
+  
+  
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=1.02">
+  
+  
+    <link rel="alternate" href="/atom.xml " title="x1a0t&#39;s Blog" type="application/atom+xml">
+  
+
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 7.2.0"></head>
+  <body>
+    <div class="container">
+      <header class="header">
+  <div class="blog-title">
+    <a href="/" class="logo">x1a0t&#39;s Blog</a>
+    <div class="subtitle"></div>
+  </div>
+  <nav class="navbar">
+    <ul class="menu">
+      
+        <li class="menu-item">
+          <a href="/" class="menu-item-link">Home</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/links" class="menu-item-link">Links</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/notes" class="menu-item-link">Notes</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/about" class="menu-item-link">About</a>
+        </li>
+      
+    </ul>
+  </nav>
+</header>
+<article class="post">
+  <div class="post-title">
+    <h1 class="article-title">WP插件wp-ulike授权SQL注入</h1>
+  </div>
+   <div class="post-meta">
+    <span class="post-time">2021-02-02</span>
+    
+      <ul class="post-tag-list" itemprop="keywords"><li class="post-tag-list-item"><a class="post-tag-list-link" href="/tags/PHP/" rel="tag">PHP</a></li><li class="post-tag-list-item"><a class="post-tag-list-link" href="/tags/SQLI/" rel="tag">SQLI</a></li></ul>
+    
+  </div>
+  <div class="post-content">
+    <p>直接看到wp-ulike&#x2F;admin&#x2F;logs.php：</p>
+<p><img src="/2021/02/02/Wordpress-Plugin-WP-ulike-Auth-SQLi/wp-ulike-1.png"></p>
+<p>首先代码中利用<code>add_action</code>将方法<code>wp_ulike_logs_process</code>注册进了事件<code>wp_ajax_ulikelogs</code>，在wordpress中以<code>wp_ajax_</code>为前缀的事件需要有后台登录权限，即目标需开启后台登陆及注册功能。另外，如果是以<code>wp_ajax_nopriv_</code>为前缀的事件，就无需任何权限了。</p>
+<p>看到该方法中的的<code>$table</code>用户可控，和<code>$wpdb-&gt;prefix</code>拼接为我们的数据表名，传入数据删除操作<code>delelte(</code>，我们跟进wordpress查看相关代码，wp-includes&#x2F;wp-db.php</p>
+<p><img src="/2021/02/02/Wordpress-Plugin-WP-ulike-Auth-SQLi/wp-delete.png"></p>
+<p>在wordpress中，增删改操作会对传入的数据库进行一些处理，继续跟进<code>process_fields</code>方法查看</p>
+<p><img src="/2021/02/02/Wordpress-Plugin-WP-ulike-Auth-SQLi/process-fields.png"></p>
+<p>由于这里的<code>$format</code>为<code>null</code>，所以<code>process_field_formats</code>并没有做什么操作，继续跟进<code>process_field_charsets</code></p>
+<p><img src="/2021/02/02/Wordpress-Plugin-WP-ulike-Auth-SQLi/process-field-charsets.png"></p>
+<p>继续往<code>get_col_charset</code>跟</p>
+<p><img src="/2021/02/02/Wordpress-Plugin-WP-ulike-Auth-SQLi/get-col-charset.png"></p>
+<p>继续往<code>get_table_charset</code>跟</p>
+<p><img src="/2021/02/02/Wordpress-Plugin-WP-ulike-Auth-SQLi/get-table-charset.png"></p>
+<p>这里带入的语句是<code>show full columns from &#123;sqli&#125;</code>，查看一下文档会发现该语句后面是可以跟where的</p>
+<p><img src="/2021/02/02/Wordpress-Plugin-WP-ulike-Auth-SQLi/doc.png"></p>
+<p>验证一下这个时间型的盲注</p>
+<p><img src="/2021/02/02/Wordpress-Plugin-WP-ulike-Auth-SQLi/sqli.png"></p>
+<h2 id="最后"><a href="#最后" class="headerlink" title="最后"></a>最后</h2><p>由于最后一步对$table以<code>.</code>分割处理，跨库查询就别想了，所以只能注一下<code>wp_users</code>，加上需要后台权限，十分鸡肋</p>
+<p>在之后的版本中，注入点虽然仍然在，但是触发事件函数时，会校检nonce，导致压根儿无法利用</p>
+<p><img src="/2021/02/02/Wordpress-Plugin-WP-ulike-Auth-SQLi/fix.png"></p>
+
+  </div>
+  <div class="post-footer">
+    <a href="#top" class="top">Post.Top</a>
+  </div>
+</article>
+<footer>
+  &copy; 2024
+  <span class="author">
+    x1a0t
+  </span>
+</footer>
+    </div>
+  </body>
+</html>

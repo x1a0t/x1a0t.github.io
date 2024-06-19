@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  
+  <title>关于鸡肋文件包含的思考 - x1a0t&#39;s Blog</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+  
+  <meta name="keywords" content=PHP,LFI>
+  
+  
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=1.02">
+  
+  
+    <link rel="alternate" href="/atom.xml " title="x1a0t&#39;s Blog" type="application/atom+xml">
+  
+
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 7.2.0"></head>
+  <body>
+    <div class="container">
+      <header class="header">
+  <div class="blog-title">
+    <a href="/" class="logo">x1a0t&#39;s Blog</a>
+    <div class="subtitle"></div>
+  </div>
+  <nav class="navbar">
+    <ul class="menu">
+      
+        <li class="menu-item">
+          <a href="/" class="menu-item-link">Home</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/links" class="menu-item-link">Links</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/notes" class="menu-item-link">Notes</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/about" class="menu-item-link">About</a>
+        </li>
+      
+    </ul>
+  </nav>
+</header>
+<article class="post">
+  <div class="post-title">
+    <h1 class="article-title">关于鸡肋文件包含的思考</h1>
+  </div>
+   <div class="post-meta">
+    <span class="post-time">2018-08-04</span>
+    
+      <ul class="post-tag-list" itemprop="keywords"><li class="post-tag-list-item"><a class="post-tag-list-link" href="/tags/LFI/" rel="tag">LFI</a></li><li class="post-tag-list-item"><a class="post-tag-list-link" href="/tags/PHP/" rel="tag">PHP</a></li></ul>
+    
+  </div>
+  <div class="post-content">
+    <h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$file</span> = <span class="variable">$_GET</span>[<span class="string">&#x27;file&#x27;</span>];</span><br><span class="line"><span class="keyword">include</span> <span class="string">&#x27;path/$file&#x27;</span>.<span class="string">&#x27;.php&#x27;</span>;</span><br></pre></td></tr></table></figure>
+
+<p>一个CMS中出现上面这样的代码，首先想到的应该是php版本小于5.3.4中利用<code>%00</code>截断包含文件。那么，如果我们正常的区包含一个php文件，又有那些用法呢？</p>
+<h1 id="正文"><a href="#正文" class="headerlink" title="正文"></a>正文</h1><h2 id="包含shell文件"><a href="#包含shell文件" class="headerlink" title="包含shell文件"></a>包含shell文件</h2><p>第一次做CMS审计的时候便遇到了这样的情况，那个CMS采用的是ZendFramework框架，只有根目录下的文件可访问执行，找到一个任意文件写入Shell后却无法访问到，正好看过ph的审计文章，于是我果断去找到了类似这么一处鸡肋文件包含点来帮忙，成功拿下</p>
+<h2 id="包含install-php"><a href="#包含install-php" class="headerlink" title="包含install.php"></a>包含install.php</h2><p>绝大多数的CMS安装后，均会创建一个锁文件，然后在install.php中写入判断代码防止重装。但是有很多代码是采用的判断锁文件相对路径，类似如下这样：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span>(<span class="title function_ invoke__">file_exists</span>(<span class="string">&#x27;./install.lock&#x27;</span>))&#123;</span><br><span class="line">    <span class="keyword">die</span>(<span class="string">&#x27;had installed!&#x27;</span>);</span><br><span class="line">&#125;</span><br><span class="line">    <span class="comment">//code to install...</span></span><br></pre></td></tr></table></figure>
+
+<p>这种情况下，如果我在其他目录下找到一个鸡肋文件包含点，对install.php进行包含，判断锁文件时，以包含点的文件出发，锁文件就被判断为不存在了，导致我们就可以执行后面的安装代码了</p>
+<p>相应的操作类似如下这样：</p>
+<p><img src="/2018/08/04/Thinking-About-Limited-LFI/1.png" alt="img"></p>
+<p>虽说我们绕过了对锁文件的判断，但是实际会收到很大限制，最大问题的就是Install.php文件通常也会使用相对路径载入一些相关文件，文件不存在则会终止掉php脚本，除非引入相关文件使用的是include和include_once</p>
+<p>这里拿metinfo的代码做演示：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span>(<span class="title function_ invoke__">file_exists</span>(<span class="string">&#x27;../config/install.lock&#x27;</span>))&#123;</span><br><span class="line">	<span class="keyword">exit</span>(<span class="string">&#x27;对不起，该程序已经安装过了。&lt;br/&gt;</span></span><br><span class="line"><span class="string">	      如你要重新安装，请手动删除config/install.lock文件。&#x27;</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="title function_ invoke__">deldir_in</span>(<span class="string">&#x27;../cache&#x27;</span>, <span class="number">1</span>);</span><br><span class="line"><span class="keyword">switch</span> (<span class="variable">$action</span>)</span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">case</span> <span class="string">&#x27;apitest&#x27;</span>: &#123;...&#125;</span><br><span class="line">    <span class="keyword">case</span> <span class="string">&#x27;inspect&#x27;</span>: &#123;...&#125;</span><br><span class="line">	<span class="keyword">case</span> <span class="string">&#x27;db_setup&#x27;</span>:</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="keyword">if</span>(<span class="variable">$setup</span>==<span class="number">1</span>)&#123;</span><br><span class="line">			<span class="variable">$db_prefix</span>      = <span class="title function_ invoke__">trim</span>(<span class="variable">$db_prefix</span>);</span><br><span class="line">            <span class="keyword">if</span> (<span class="title function_ invoke__">strstr</span>(<span class="variable">$db_host</span>, <span class="string">&quot;:&quot;</span>)) &#123;</span><br><span class="line">                <span class="variable">$arr</span> = <span class="title function_ invoke__">explode</span>(<span class="string">&quot;:&quot;</span>, <span class="variable">$db_host</span>);</span><br><span class="line">                <span class="variable">$db_host</span> = <span class="variable">$arr</span>[<span class="number">0</span>];</span><br><span class="line">                <span class="variable">$db_port</span> = <span class="variable">$arr</span>[<span class="number">1</span>];</span><br><span class="line">            &#125;<span class="keyword">else</span>&#123;</span><br><span class="line">                <span class="variable">$db_host</span>        = <span class="title function_ invoke__">trim</span>(<span class="variable">$db_host</span>);</span><br><span class="line">                <span class="variable">$db_port</span>           = <span class="string">&quot;3306&quot;</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="variable">$db_username</span>    = <span class="title function_ invoke__">trim</span>(<span class="variable">$db_username</span>);</span><br><span class="line">            <span class="variable">$db_pass</span>        = <span class="title function_ invoke__">trim</span>(<span class="variable">$db_pass</span>);</span><br><span class="line">            <span class="variable">$db_name</span>        = <span class="title function_ invoke__">trim</span>(<span class="variable">$db_name</span>);</span><br><span class="line">			<span class="variable">$db_port</span>        = <span class="title function_ invoke__">trim</span>(<span class="variable">$db_port</span>);</span><br><span class="line">			<span class="variable">$config</span>=<span class="string">&quot;&lt;?php</span></span><br><span class="line"><span class="string">                   /*</span></span><br><span class="line"><span class="string">                   con_db_host = \&quot;<span class="subst">$db_host</span>\&quot;</span></span><br><span class="line"><span class="string">                   con_db_port = \&quot;<span class="subst">$db_port</span>\&quot;</span></span><br><span class="line"><span class="string">                   con_db_id   = \&quot;<span class="subst">$db_username</span>\&quot;</span></span><br><span class="line"><span class="string">                   con_db_pass	= \&quot;<span class="subst">$db_pass</span>\&quot;</span></span><br><span class="line"><span class="string">                   con_db_name = \&quot;<span class="subst">$db_name</span>\&quot;</span></span><br><span class="line"><span class="string">                   tablepre    =  \&quot;<span class="subst">$db_prefix</span>\&quot;</span></span><br><span class="line"><span class="string">                   db_charset  =  \&quot;utf8\&quot;;</span></span><br><span class="line"><span class="string">                  */</span></span><br><span class="line"><span class="string">                  ?&gt;&quot;</span>;</span><br><span class="line"></span><br><span class="line">			<span class="variable">$fp</span>=<span class="title function_ invoke__">fopen</span>(<span class="string">&quot;../config/config_db.php&quot;</span>,<span class="string">&#x27;w+&#x27;</span>);</span><br><span class="line">			<span class="title function_ invoke__">fputs</span>(<span class="variable">$fp</span>,<span class="variable">$config</span>);</span><br><span class="line">			<span class="title function_ invoke__">fclose</span>(<span class="variable">$fp</span>);</span><br></pre></td></tr></table></figure>
+
+<p><strong>如果成功包含该文件</strong>，判断锁文件之前是metinfo自己写的很多安装用的函数，不会影响包含后进入下面的代码。install.php中的代码本身就存在很大的风险</p>
+<p>就比如这里的配置文件写入，利用<code>*/phpinfo();/*</code>即可写入一个shell，可惜并没有一个好的方法创建一个完美的config文件夹供代码写入。总之，绕过锁文件后，就可能利用到其中的危险代码</p>
+<h2 id="其他"><a href="#其他" class="headerlink" title="其他"></a>其他</h2><p>仔细想想，使用上面点还可以有很多骚操作，遇到再补充～</p>
+<h1 id="结尾"><a href="#结尾" class="headerlink" title="结尾"></a>结尾</h1><p>开发过程中，这样的点最好不要出现，有也得添加限制，另外，install目录这种东西不要出现在线上</p>
+
+  </div>
+  <div class="post-footer">
+    <a href="#top" class="top">Post.Top</a>
+  </div>
+</article>
+<footer>
+  &copy; 2024
+  <span class="author">
+    x1a0t
+  </span>
+</footer>
+    </div>
+  </body>
+</html>

